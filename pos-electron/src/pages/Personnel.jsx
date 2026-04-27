@@ -77,8 +77,18 @@ const Personnel = () => {
                             {users.map(user => (
                                 <tr key={user.id}>
                                     <td style={{ fontWeight: 'bold' }}>{user.name} {user.surname}</td>
-                                    <td style={{ letterSpacing: '2px', color: '#d4af37', fontWeight: 'bold' }}>{user.pin}</td>
-                                    <td style={{ letterSpacing: '2px', color: '#888' }}>{user.password || 'Yok'}</td>
+
+                                    {/* BÜYÜ BURADA: user.pin değil, user.user_pin okuyacağız */}
+                                    <td style={{ letterSpacing: '2px', color: '#d4af37', fontWeight: 'bold' }}>
+                                        {user.user_pin}
+                                    </td>
+
+                                    {/* Şifre (pass_pin) backend'de kriptolandığı için buraya karmaşık bir hash gelir, 
+                                    o yüzden ekranda *** veya Gizli göstermek daha profesyoneldir */}
+                                    <td style={{ letterSpacing: '2px', color: '#888' }}>
+                                        {user.pass_pin ? '••••••••' : 'Yok'}
+                                    </td>
+
                                     <td>{getRoleBadge(user.role)}</td>
                                     <td>
                                         {user.role !== 'Admin' && (

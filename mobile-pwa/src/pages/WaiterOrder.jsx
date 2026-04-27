@@ -1,0 +1,188 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import './Order.css';
+
+const WaiterOrder = () => {
+    const { tableId } = useParams();
+    const navigate = useNavigate();
+    const orderListRef = useRef(null);
+
+    const [menu, setMenu] = useState([]);
+    const [activeCategoryId, setActiveCategoryId] = useState(null);
+    const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    const [pendingItems, setPendingItems] = useState([]);
+
+    useEffect(() => {
+        fetchData();
+    }, [tableId]);
+
+    useEffect(() => {
+        if (orderListRef.current) {
+            orderListRef.current.scrollTo({ top: orderListRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    }, [order, pendingItems]);
+
+    const fetchData = async () => {
+        try {
+            const menuRes = await api.get('/menu');
+            setMenu(menuRes.data || []);
+            if (menuRes.data && menuRes.data.length > 0 && !activeCategoryId) {
+                setActiveCategoryId(menuRes.data[0].id);
+            }
+
+            const orderRes = await api.get(`/orders/table/${tableId}`);
+            setOrder(orderRes.data || null);
+        } catch (error) {
+            console.error('Veriler çekilirken hata:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStageItem = (product) => {
+        setPendingItems(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+                return prev.map(item =>
+                    item.id === product.id ? { ...item, quantity: item.quantity + 1, lineTotal: item.lineTotal + parseFloat(product.price || 0) } : item
+                );
+            }
+            return [...prev, { ...product, quantity: 1, lineTotal: parseFloat(product.price || 0) }];
+        });
+    };
+
+    const handleRemovePending = (productId) => {
+        setPendingItems(prev => {
+            const existing = prev.find(item => item.id === productId);
+            if (!existing) return prev;
+            if (existing.quantity > 1) {
+                return prev.map(item =>
+                    item.id === productId ? { ...item, quantity: item.quantity - 1, lineTotal: item.lineTotal - parseFloat(item.price || 0) } : item
+                );
+            }
+            return prev.filter(item => item.id !== productId);
+        });
+    };
+
+    const handleSendPendingOrders = async () => {
+        if (pendingItems.length === 0) return;
+        try {
+            const promises = pendingItems.map(item =>
+                api.post(`/orders/table/${tableId}/add-item`, { productId: item.id, price: item.price, quantity: item.quantity })
+            );
+            await Promise.all(promises);
+            setPendingItems([]);
+            fetchData();
+        } catch (error) { alert('Siparişler gönderilemedi!'); }
+    };
+
+    const getActiveProducts = () => {
+        const category = menu.find(c => c.id === activeCategoryId);
+        return category ? (category.Products || category.products || []) : [];
+    };
+
+    const pendingTotal = pendingItems.reduce((acc, item) => acc + (item.lineTotal || 0), 0);
+    const totalAmount = parseFloat(order?.total_amount || 0);
+    const remaining = Math.max(0, totalAmount - parseFloat(order?.paid_amount || 0) - parseFloat(order?.discount_amount || 0));
+
+    const orderItemsSafe = order?.OrderItems || [];
+    const groupedOrderItems = orderItemsSafe.reduce((acc, item) => {
+        const key = `${item.product_id}-${item.status}`;
+        if (!acc[key]) acc[key] = { ...item, totalQty: 0, sumPrice: 0 };
+        acc[key].totalQty += item.quantity || 1;
+        acc[key].sumPrice += parseFloat(item.price || 0) * (item.quantity || 1);
+        return acc;
+    }, {});
+
+    if (loading) return <div className="loading-screen">Yükleniyor...</div>;
+
+    return (
+        <div className="order-layout">
+            {/* SOL PANEL (ADİSYON) - Kasa Ekranından Farklı! */}
+            <div className="receipt-panel">
+                <div className="receipt-header">
+                    <h2 style={{ margin: 0, color: '#00ffcc', fontSize: '20px' }}>Masa {tableId}</h2>
+                    <button className="close-panel-btn" onClick={() => navigate('/waiter-dashboard')}>GERİ DÖN</button>
+                </div>
+
+                <div className="receipt-body">
+                    <div ref={orderListRef} style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+                        <h3 className="section-title">MASADAKİLER</h3>
+                        {Object.keys(groupedOrderItems).length === 0 ? (
+                            <p style={{ color: '#444', fontSize: '12px', fontStyle: 'italic' }}>Kayıtlı sipariş yok.</p>
+                        ) : (
+                            <ul className="order-list">
+                                {Object.values(groupedOrderItems).map(gItem => (
+                                    <li key={`${gItem.product_id}-${gItem.status}`} className="order-list-item">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
+                                                {gItem.totalQty}x {gItem.Product?.name || 'Ürün'}
+                                            </span>
+                                        </div>
+                                        {/* BÜYÜ BURADA: Garson silemez (X butonu yok) */}
+                                        <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
+                                            ₺{gItem.sumPrice.toFixed(2)}
+                                        </strong>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+
+                        {pendingItems.length > 0 && (
+                            <>
+                                <h3 className="section-title new-items-title">SİPARİŞE EKLE</h3>
+                                <ul className="order-list">
+                                    {pendingItems.map(item => (
+                                        <li key={item.id} className="order-list-item pending-item-row">
+                                            <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{item.quantity}x {item.name}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <strong style={{ color: 'var(--primary-color)' }}>₺{item.lineTotal.toFixed(2)}</strong>
+                                                <button className="minus-btn" onClick={() => handleRemovePending(item.id)}>-</button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="receipt-footer">
+                        <div className="summary-row total-row">
+                            <span>MASA HESABI:</span><span style={{ color: '#fff' }}>₺{(remaining + pendingTotal).toFixed(2)}</span>
+                        </div>
+
+                        {pendingItems.length > 0 ? (
+                            <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>MUTFAĞA GÖNDER</button>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px', marginTop: '10px' }}>
+                                Ödeme ve iptal işlemleri Kasa'dan yapılmaktadır.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* SAĞ PANEL (MENÜ) */}
+            <div className="menu-panel">
+                <div className="category-slider">
+                    {menu.map(cat => (
+                        <button key={cat.id} className={`cat-btn ${activeCategoryId === cat.id ? 'active' : ''}`} onClick={() => setActiveCategoryId(cat.id)}>{cat.name}</button>
+                    ))}
+                </div>
+                <div className="product-grid">
+                    {getActiveProducts().map(prod => (
+                        <button key={prod.id} className="prod-btn" onClick={() => handleStageItem(prod)}>
+                            <span className="prod-name">{prod.name}</span>
+                            <span className="prod-price">₺{parseFloat(prod.price || 0).toFixed(2)}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default WaiterOrder;

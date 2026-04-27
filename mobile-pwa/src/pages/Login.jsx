@@ -9,7 +9,7 @@ const Login = () => {
   const [activeInput, setActiveInput] = useState('user'); // Hangi kutuya yazıyoruz?
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Numpad tuşlarına basıldığında çalışacak fonksiyon
@@ -41,21 +41,25 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // Backend'e bilet (Token) almak için istek atıyoruz
       const response = await api.post('/auth/login', {
         user_pin: userPin,
         pass_pin: passPin
       });
 
-      // Gelen bileti cebimize (LocalStorage) koyuyoruz
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      // Kapı açıldı, Ana Ekrana yürü!
-      navigate('/dashboard');
+
+      // BÜYÜ BURADA: Role göre kapıları ayırıyoruz!
+      const userRole = response.data.user.role;
+      if (userRole === 'Garson') {
+        navigate('/waiter-dashboard'); // Garsonları kendi özel paneline gönder
+      } else {
+        navigate('/dashboard'); // Admin ve Kasa ana ekrana gider
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || 'Sunucuya bağlanılamadı.');
-      setPassPin(''); // Hata varsa şifreyi temizle
+      setPassPin('');
       setActiveInput('pass');
     } finally {
       setLoading(false);
@@ -73,7 +77,7 @@ const Login = () => {
         {error && <div className="error-message">{error}</div>}
 
         <div className="input-group">
-          <div 
+          <div
             className={`pin-input ${activeInput === 'user' ? 'active' : ''}`}
             onClick={() => setActiveInput('user')}
           >
@@ -81,7 +85,7 @@ const Login = () => {
             <div className="pin-display">{userPin.padEnd(4, '•')}</div>
           </div>
 
-          <div 
+          <div
             className={`pin-input ${activeInput === 'pass' ? 'active' : ''}`}
             onClick={() => setActiveInput('pass')}
           >
@@ -101,9 +105,9 @@ const Login = () => {
           <button className="action-btn" onClick={handleBackspace}>⌫</button>
         </div>
 
-        <button 
-          className="login-btn" 
-          onClick={handleLogin} 
+        <button
+          className="login-btn"
+          onClick={handleLogin}
           disabled={loading}
         >
           {loading ? 'GİRİŞ YAPILIYOR...' : 'GİRİŞ YAP'}

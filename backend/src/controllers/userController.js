@@ -2,7 +2,6 @@ const { User } = require('../models');
 
 exports.getAllUsers = async (req, res) => {
     try {
-        // BÜYÜ BURADA: Sütun kısıtlamasını siktir ettik. DB'de ne varsa çekecek, patlama riski SIFIR.
         const users = await User.findAll();
         res.status(200).json(users);
     } catch (error) {
@@ -13,17 +12,26 @@ exports.getAllUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
     try {
-        // Senin istediğin 5'li çete: İsim, Soyisim, Giriş PIN, Şifre PIN (password), Rol
         const { name, surname, pin, password, role } = req.body;
 
         if (pin) {
-            const existingPin = await User.findOne({ where: { pin } });
+            // DÜZELTME 1: DB'de ararken user_pin olarak ara!
+            const existingPin = await User.findOne({ where: { user_pin: pin } });
             if (existingPin) return res.status(400).json({ message: 'Bu Giriş PIN kodu başka bir personele ait!' });
         }
 
-        const user = await User.create({ name, surname, pin, password, role });
+        // DÜZELTME 2: DB'ye kaydederken sütun isimlerini eşleştir!
+        const user = await User.create({
+            name,
+            surname,
+            user_pin: pin,
+            pass_pin: password,
+            role
+        });
+
         res.status(201).json({ message: 'Personel eklendi.', user });
     } catch (error) {
+        console.error("VERİTABANI KAYIT HATASI:", error);
         res.status(400).json({ message: 'Ekleme başarısız!', error: error.message });
     }
 };
