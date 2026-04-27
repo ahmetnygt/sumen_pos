@@ -10,6 +10,7 @@ const Recipe = require('./Recipe');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const Shift = require('./Shift');
+const SystemLog = require('./SystemLog');
 
 // ---------------- İLİŞKİLER (RELATIONS) ----------------
 
@@ -49,5 +50,6 @@ module.exports = {
     Recipe,
     Order,
     OrderItem,
-    Shift
+    Shift,
+    SystemLog
 };

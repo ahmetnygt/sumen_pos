@@ -1,6 +1,13 @@
 const orderService = require('../services/orderService');
 const { SystemLog, Table, Order } = require('../models');
-const { Op } = require('sequelize');
+
+// GÜVENLİK DUVARI: Token'dan isim gelmezse sistemi patlatmasın diye güvenli isim çekici
+const getPersonnelName = (user) => {
+    if (!user) return 'Sistem';
+    const name = user.name || user.username || 'Personel';
+    const role = user.role || 'Yetkisiz';
+    return `${name} (${role})`;
+};
 
 exports.getActiveOrder = async (req, res) => {
     try {
@@ -14,14 +21,15 @@ exports.addItem = async (req, res) => {
         const { productId, price, quantity } = req.body;
         const orderItem = await orderService.addItemToOrder(req.params.tableId, req.user.id, productId, price, quantity);
 
-        // KİM GİRDİ LOGLA VE RADYODAN (SOCKET) SİNYAL ÇAK
         const table = await Table.findByPk(req.params.tableId);
-        await SystemLog.create({
-            table_name: table.name,
-            personnel: `${req.user.name} (${req.user.role})`,
-            message: `📝 ${quantity}x ürün siparişi girildi.`,
-            status: 'Siparişte'
-        });
+        if (table) {
+            await SystemLog.create({
+                table_name: table.name,
+                personnel: getPersonnelName(req.user),
+                message: `📝 ${quantity}x ürün siparişi girildi.`,
+                status: 'Siparişte'
+            });
+        }
         req.app.get('io').emit('updateTables');
         req.app.get('io').emit('updateDashboard');
 
@@ -33,8 +41,8 @@ exports.cancelItem = async (req, res) => {
     try {
         const result = await orderService.cancelOrderItem(req.params.itemId);
         await SystemLog.create({
-            table_name: 'İPTAL',
-            personnel: `${req.user.name} (${req.user.role})`,
+            table_name: 'İPTAL İŞLEMİ',
+            personnel: getPersonnelName(req.user),
             message: `✕ Bir ürün iptal edildi.`,
             status: 'İptal'
         });
@@ -50,12 +58,14 @@ exports.applyDiscount = async (req, res) => {
         const result = await orderService.applyDiscount(req.params.tableId, type, value);
 
         const table = await Table.findByPk(req.params.tableId);
-        await SystemLog.create({
-            table_name: table.name,
-            personnel: `${req.user.name} (${req.user.role})`,
-            message: `✂️ ₺${result.discount_amount} İskonto uygulandı.`,
-            status: 'İskonto'
-        });
+        if (table) {
+            await SystemLog.create({
+                table_name: table.name,
+                personnel: getPersonnelName(req.user),
+                message: `✂️ ₺${result.discount_amount} İskonto uygulandı.`,
+                status: 'İskonto'
+            });
+        }
         req.app.get('io').emit('updateDashboard');
 
         res.status(200).json(result);
@@ -70,12 +80,14 @@ exports.payOrder = async (req, res) => {
         const table = await Table.findByPk(req.params.tableId);
         const tag = payment_method === 'Nakit' ? '💵' : '💳';
 
-        await SystemLog.create({
-            table_name: table.name,
-            personnel: `${req.user.name} (${req.user.role})`,
-            message: result.isFullyPaid ? `✅ ${tag} HESAP KAPATILDI.` : `💰 ${tag} ₺${pay_amount} kısmi tahsilat.`,
-            status: result.isFullyPaid ? 'Kapatıldı' : 'Ödendi'
-        });
+        if (table) {
+            await SystemLog.create({
+                table_name: table.name,
+                personnel: getPersonnelName(req.user),
+                message: result.isFullyPaid ? `✅ ${tag} HESAP KAPATILDI.` : `💰 ${tag} ₺${pay_amount} kısmi tahsilat.`,
+                status: result.isFullyPaid ? 'Kapatıldı' : 'Ödendi'
+            });
+        }
 
         req.app.get('io').emit('updateTables');
         req.app.get('io').emit('updateDashboard');
@@ -84,20 +96,17 @@ exports.payOrder = async (req, res) => {
     } catch (error) { res.status(400).json({ message: error.message }); }
 };
 
-// SİSTEM BİLGİSİ: Radarı besleyen canlı istihbarat motoru
+// RADAR MOTORU: Tarih hatası (created_at) çözüldü, ID ile sıralanıyor.
 exports.getLiveSummary = async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
         const recentLogs = await SystemLog.findAll({
-            limit: 20,
-            order: [['created_at', 'DESC']]
+            limit: 25,
+            order: [['id', 'DESC']] // BÜYÜ BURADA: Sequelize'ın tarih bug'ını atlatmak için ID'ye göre tersten diziyoruz!
         });
 
         const logs = recentLogs.map(log => ({
             id: `log-${log.id}`,
-            time: log.created_at || log.createdAt,
+            time: log.created_at || log.createdAt || new Date(),
             table: log.table_name,
             personnel: log.personnel,
             message: log.message,
@@ -105,5 +114,8 @@ exports.getLiveSummary = async (req, res) => {
         }));
 
         res.status(200).json({ logs });
-    } catch (error) { res.status(500).json({ message: 'Özet alınamadı' }); }
+    } catch (error) { 
+        console.error("Radar Verisi Çekilemedi:", error);
+        res.status(500).json({ message: 'Özet alınamadı' }); 
+    }
 };
