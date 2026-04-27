@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Order from './pages/Order';
 import AdminPanel from './pages/AdminPanel';
 import StockMenu from './pages/StockMenu'; // BÜYÜ BURADA 1: Dosyayı içeri al
+import Personnel from './pages/Personnel'; // BÜYÜ BURADA 1: Dosyayı içeri al
 
 function App() {
   return (
@@ -15,7 +16,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/order/:tableId" element={<Order />} />
         <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/stock-menu" element={<StockMenu />} /> {/* BÜYÜ BURADA 2: Rotayı tanımla */}
+        <Route path="/stock-menu" element={<StockMenu />} />
+        <Route path="/personnel" element={<Personnel />} />
       </Routes>
     </Router>
   );

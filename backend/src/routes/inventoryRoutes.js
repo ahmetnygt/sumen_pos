@@ -7,14 +7,14 @@ const { verifyToken, authorizeRoles } = require('../middlewares/authMiddleware')
 router.use(verifyToken, authorizeRoles('Admin'));
 
 // Hammadde (Stok) Rotaları
-router.get('/ingredients', inventoryController.getIngredients);
-router.post('/ingredients', inventoryController.addIngredient);
-router.put('/ingredients/:id', inventoryController.updateIngredient);
-router.delete('/ingredients/:id', inventoryController.deleteIngredient);
+router.get('/ingredients', inventoryController.getAll);
+router.post('/ingredients', inventoryController.create);
+router.put('/ingredients/:id', inventoryController.update);
+router.delete('/ingredients/:id', inventoryController.delete);
 
 // Reçete (Formül) Rotaları
 router.get('/recipes/:productId', inventoryController.getProductRecipe);
-router.post('/recipes', inventoryController.addRecipeItem);
-router.delete('/recipes/:productId/:ingredientId', inventoryController.deleteRecipeItem);
+router.post('/recipes', inventoryController.addIngredientToRecipe);
+router.delete('/recipes/:productId/:ingredientId', inventoryController.removeIngredientFromRecipe);
 
 module.exports = router;

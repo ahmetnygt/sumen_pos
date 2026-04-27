@@ -326,7 +326,7 @@
 }
 
 /* --- ÜÇ SÜTUNLU KASA MODALI --- */
-.modal-overlay {
+.checkout-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -340,7 +340,7 @@
     z-index: 10001;
 }
 
-.modal-box {
+.checkout-modal-box {
     background: var(--bg-color);
     width: 1300px;
     max-width: 98vw;

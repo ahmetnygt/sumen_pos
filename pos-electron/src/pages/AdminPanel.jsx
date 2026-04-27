@@ -60,7 +60,7 @@ const AdminPanel = () => {
                         <p>Kasa açılış/kapanış, personel mesai ve açık/fazla takibi.</p>
                     </div>
 
-                    <div className="admin-card" onClick={() => alert('İnsan Kaynakları yazılacak')}>
+                    <div className="admin-card" onClick={() => navigate('/personnel')}>
                         <div className="card-icon">👥</div>
                         <h4>İnsan Kaynakları</h4>
                         <p>Yeni personel işe alımı, yetkilendirme ve PIN kodu yönetimi.</p>

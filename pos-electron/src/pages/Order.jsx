@@ -23,7 +23,7 @@ const Order = () => {
   const [discountValue, setDiscountValue] = useState('');
   const [selectedQuantities, setSelectedQuantities] = useState({});
   const [modalError, setModalError] = useState('');
-  
+
   // BÜYÜ BURADA: Numpad'in nereye yazacağını bilen State
   const [activeInput, setActiveInput] = useState('payAmount'); // Varsayılan olarak tutar kutusu seçili başlar
 
@@ -129,7 +129,7 @@ const Order = () => {
 
   const handleRemoveDiscount = async () => {
     try {
-      await api.post(`/orders/table/${tableId}/discount`, { type: 'amount', value: -order.discount_amount }); 
+      await api.post(`/orders/table/${tableId}/discount`, { type: 'amount', value: -order.discount_amount });
       fetchData();
     } catch (error) { alert('İskonto silinemedi!'); }
   };
@@ -264,7 +264,7 @@ const Order = () => {
                       </span>
                       {gItem.status === 'Ödendi' && <span className="paid-badge-small">ÖDENDİ</span>}
                     </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
                         ₺{gItem.sumPrice.toFixed(2)}
                       </strong>
@@ -334,22 +334,22 @@ const Order = () => {
 
       {/* --- KASA MODALI (3 SÜTUNLU YENİ MİMARİ) --- */}
       {showCheckout && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            
+        <div className="checkout-modal-overlay">
+          <div className="checkout-modal-box">
+
             <div className="modal-header">
               <h2>TAHSİLAT VE İSKONTO - MASA {tableId}</h2>
               <button className="close-icon" onClick={() => setShowCheckout(false)}>✖</button>
             </div>
 
             <div className="modal-body">
-              
+
               {/* SÜTUN 1: ÜRÜN SEÇİMİ (Kendi İçinde Scroll) */}
               <div className="modal-col modal-products">
                 <h3 className="modal-subtitle">ÜRÜN SEÇEREK ÖDE</h3>
                 <div className="modal-products-list">
                   {order.OrderItems.length === 0 && <p style={{ color: '#555' }}>Ödenecek ürün kalmadı.</p>}
-                  
+
                   {/* BÜTÜN BÜYÜ BURADA: Ödenenler de listede gözükür! */}
                   {order.OrderItems.map(item => {
                     if (item.status === 'Ödendi') {
@@ -389,17 +389,17 @@ const Order = () => {
 
               {/* SÜTUN 2: MATEMATİK VE ÖDEME BUTONLARI (Kendi İçinde Scroll) */}
               <div className="modal-col modal-payment">
-                
+
                 {/* İskonto Alanı */}
                 <div className="discount-area">
                   <div className="discount-toggle">
                     <button className={discountType === 'amount' ? 'active' : ''} onClick={() => setDiscountType('amount')}>₺</button>
                     <button className={discountType === 'percent' ? 'active' : ''} onClick={() => setDiscountType('percent')}>%</button>
                   </div>
-                  <input 
-                    type="number" 
-                    placeholder="İndirim..." 
-                    value={discountValue} 
+                  <input
+                    type="number"
+                    placeholder="İndirim..."
+                    value={discountValue}
                     onChange={(e) => { setDiscountValue(e.target.value); setActiveInput('discount'); }}
                     onFocus={() => setActiveInput('discount')}
                     className={`discount-input ${activeInput === 'discount' ? 'input-active' : ''}`}
@@ -435,14 +435,14 @@ const Order = () => {
                 {/* Alınacak Tutar */}
                 <div style={{ marginTop: 'auto' }}>
                   <label className="pay-label">ALINACAK TUTAR (₺)</label>
-                  <input 
-                    type="text" 
-                    className={`pay-input ${activeInput === 'payAmount' ? 'input-active' : ''}`} 
-                    value={payAmount} 
+                  <input
+                    type="text"
+                    className={`pay-input ${activeInput === 'payAmount' ? 'input-active' : ''}`}
+                    value={payAmount}
                     onChange={handleAmountChange}
-                    onFocus={() => setActiveInput('payAmount')} 
+                    onFocus={() => setActiveInput('payAmount')}
                   />
-                  
+
                   <div className="payment-methods">
                     <button className="card-btn" onClick={() => handlePayment('Kredi Kartı')}>💳 KART</button>
                     <button className="cash-btn" onClick={() => handlePayment('Nakit')}>💵 NAKİT</button>
