@@ -1,0 +1,143 @@
+body {
+    margin: 0;
+}
+
+.login-container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #121212;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none; /* Kasiyer yanlışlıkla metinleri seçmesin diye */
+}
+
+.login-box {
+  background: #1e1e1e;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.login-header {
+  text-align: center;
+  color: white;
+}
+
+.login-header h1 {
+  margin: 0;
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+.login-header h1 span {
+  color: #F3D431; /* Sümen Sarısı */
+}
+
+.login-header p {
+  margin: 5px 0 0 0;
+  color: #888;
+  font-size: 14px;
+}
+
+.error-message {
+  background: #ff4c4c;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.input-group {
+  display: flex;
+  gap: 15px;
+}
+
+.pin-input {
+  flex: 1;
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pin-input.active {
+  border-color: #F3D431;
+  background: #333;
+}
+
+.pin-input label {
+  color: #aaa;
+  font-size: 12px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pin-display {
+  color: white;
+  font-size: 24px;
+  letter-spacing: 8px;
+  font-weight: bold;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.numpad button {
+  background: #2a2a2a;
+  border: none;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.numpad button:active {
+  background: #F3D431;
+  color: black;
+  transform: scale(0.95);
+}
+
+.numpad .action-btn {
+  background: #3a3a3a;
+  color: #F3D431;
+}
+
+.login-btn {
+  background: #F3D431;
+  color: #121212;
+  border: none;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.login-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.login-btn:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}

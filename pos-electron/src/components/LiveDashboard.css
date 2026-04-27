@@ -1,0 +1,184 @@
+.live-radar-container {
+    width: 380px;
+    height: 100%;
+    background-color: #0a0a0a;
+    border-left: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+/* --- SAAT KISMI --- */
+.clock-section {
+    padding: 25px 20px;
+    text-align: center;
+    border-bottom: 1px dashed #222;
+    background: #111;
+}
+
+.time-display {
+    font-size: 42px;
+    font-weight: 900;
+    color: #d4af37;
+    letter-spacing: 2px;
+    text-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+.date-display {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+/* --- LOG KISMI --- */
+.logs-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0d0d0d;
+}
+
+.logs-header {
+    padding: 15px 20px;
+    background: #111;
+    border-bottom: 1px solid #222;
+    color: #eee;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radar-icon {
+    color: #d4af37;
+    font-size: 16px;
+    animation: pulse-icon 2s infinite;
+}
+
+@keyframes pulse-icon {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.logs-list {
+    list-style: none;
+    padding: 15px;
+    margin: 0;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.logs-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.logs-list::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+}
+
+.empty-log {
+    color: #555;
+    text-align: center;
+    font-size: 12px;
+    margin-top: 20px;
+    font-style: italic;
+}
+
+.log-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #121212;
+    border: 1px solid #1e1e1e;
+    border-radius: 6px;
+    align-items: flex-start;
+}
+
+.log-time {
+    color: #555;
+    font-size: 11px;
+    font-weight: 700;
+    padding-top: 2px;
+}
+
+.log-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.log-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* YENİ EKLENEN KISIM: Yan yana dizilim ve Personel fontu */
+.log-header-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.log-table {
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.log-personnel {
+    color: #666;
+    font-size: 10px;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.log-message {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Log Renk Kategorileri */
+.log-pending {
+    color: #aaa;
+}
+
+.log-paid {
+    color: #00ffcc;
+}
+
+.log-danger {
+    color: #e63946;
+}
+
+.log-closed {
+    color: #2b9348;
+}
+
+.log-discount {
+    color: #d4af37;
+}
