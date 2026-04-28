@@ -1,0 +1,215 @@
+body {
+    margin: 0;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #1e1e1e;
+    border-bottom: 2px solid #333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.logo-area {
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.logo-area span {
+    color: #F3D431;
+}
+
+.user-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.logout-btn {
+    background: #ff4c4c;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: opacity 0.2s;
+}
+
+.logout-btn:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+.section-title {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: #aaa;
+    font-weight: normal;
+}
+
+.table-grid {
+    display: grid;
+    /* Ekran büyüdükçe masaları otomatik yan yana dizer */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 25px;
+}
+
+.table-card {
+    height: 160px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.15s ease-in-out;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.table-card:active {
+    transform: scale(0.93);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.table-card h3 {
+    margin: 0 0 15px 0;
+    font-size: 26px;
+    letter-spacing: 1px;
+}
+
+.table-card p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+}
+
+/* Masa Durum Renkleri (Gradient ile daha premium bir hava) */
+.table-success {
+    background: linear-gradient(135deg, #2b9348, #007f5f);
+}
+
+/* Yeşil */
+.table-danger {
+    background: linear-gradient(135deg, #d90429, #9b2226);
+}
+
+/* Kırmızı */
+.table-warning {
+    background: linear-gradient(135deg, #ffd166, #f48c06);
+    color: #121212;
+}
+
+/* Dashboard.css'in en altına eklenecekler */
+.live-stats-area {
+    display: flex;
+    gap: 15px;
+}
+
+.stat-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 8px 15px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+}
+
+.stat-box span {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+}
+
+.stat-box strong {
+    font-size: 16px;
+    color: white;
+    font-weight: 800;
+}
+
+.stat-box.highlight {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.stat-box.highlight strong {
+    color: #d4af37;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    margin-right: 15px;
+}
+
+.user-name {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.user-role {
+    font-size: 11px;
+    color: #888;
+}
+
+.admin-btn {
+    background: #222;
+    color: #d4af37;
+    border: 1px solid #d4af37;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.admin-btn:hover {
+    background: #d4af37;
+    color: black;
+}
+
+/* Mevcut CSS kodlarının içine bunları ekle/değiştir */
+
+.dashboard-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #050505; /* Arka planı iyice matlaştırdık */
+  color: white;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* BÜYÜ BURADA: Ana gövdeyi yan yana flex yapıyoruz */
+.dashboard-body-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* Sağdaki radarın kaplayacağı alan */
+.dashboard-sidebar {
+  flex: 0 0 380px; /* Genişliği sabit 380px */
+}
