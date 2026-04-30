@@ -1,16 +1,22 @@
-const { Category, Product } = require('../models');
+const { Category, Product, ProductOption } = require('../models');
 
 // Tüm kategorileri ve içindeki aktif ürünleri getirir
 exports.getFullMenu = async () => {
     return await Category.findAll({
-        include: [{ 
-            model: Product, 
-            required: false // Ürünü olmayan boş kategoriler de gelsin
+        include: [{
+            model: Product,
+            where: { status: 'Aktif' },
+            required: false, // İçi boş kategoriler de gelsin
+            include: [
+                {
+                    model: ProductOption, // BÜYÜ BURADA: Artık ürünlerin seçenekleri de tablete gidiyor
+                    required: false
+                }
+            ]
         }],
         order: [['id', 'ASC']]
     });
 };
-
 exports.createCategory = async (data) => {
     return await Category.create(data);
 };

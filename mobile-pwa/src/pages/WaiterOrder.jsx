@@ -13,6 +13,11 @@ const WaiterOrder = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // MODAL İÇİN YENİ STATELER
+    const [showModal, setShowModal] = useState(false);
+    const [selectedProductForModal, setSelectedProductForModal] = useState(null);
+    const [activeOptions, setActiveOptions] = useState([]);
+
     const [pendingItems, setPendingItems] = useState([]);
 
     useEffect(() => {
@@ -42,16 +47,64 @@ const WaiterOrder = () => {
         }
     };
 
-    const handleStageItem = (product) => {
+    const handleStageItem = (product, selectedOptions = []) => {
+        // 1. Ekstra fiyatları hesapla
+        const extraPrice = selectedOptions.reduce((sum, opt) => sum + parseFloat(opt.price_diff || 0), 0);
+        const basePrice = parseFloat(product.price || 0);
+        const finalUnitPrice = basePrice + extraPrice;
+
+        // 2. Benzersiz ID oluştur (12-Duble,Buzlu)
+        const optionsKey = selectedOptions.map(o => o.name).sort().join(',');
+        const uniqueId = `${product.id}-${optionsKey}`;
+
         setPendingItems(prev => {
-            const existing = prev.find(item => item.id === product.id);
+            const existing = prev.find(item => item.uniqueId === uniqueId);
             if (existing) {
                 return prev.map(item =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1, lineTotal: item.lineTotal + parseFloat(product.price || 0) } : item
+                    item.uniqueId === uniqueId
+                        ? { ...item, quantity: item.quantity + 1, lineTotal: item.lineTotal + finalUnitPrice }
+                        : item
                 );
             }
-            return [...prev, { ...product, quantity: 1, lineTotal: parseFloat(product.price || 0) }];
+            return [...prev, {
+                ...product,
+                uniqueId, // Benzersiz ayırıcı
+                quantity: 1,
+                lineTotal: finalUnitPrice,
+                basePrice: basePrice, // Asıl ürünü yollarken lazım
+                selectedOptions // BÜYÜ BURADA: Backend'e yollayacağımız ekstralar
+            }];
         });
+    };
+
+    // Menüden bir ürüne tıklandığında çalışır
+    const handleProductClick = (product) => {
+        // Eğer ürünün seçenekleri varsa Pop-up'ı aç
+        if (product.ProductOptions && product.ProductOptions.length > 0) {
+            setSelectedProductForModal(product);
+            setActiveOptions([]); // Önceki seçimleri temizle
+            setShowModal(true);
+        } else {
+            // Seçeneği yoksa (Örn: Çay, Su), mermi gibi direkt ekle!
+            handleStageItem(product, []);
+        }
+    };
+
+    // Pop-up içindeki seçeneklere tıklama
+    const toggleOption = (opt) => {
+        const exists = activeOptions.find(o => o.id === opt.id);
+        if (exists) {
+            setActiveOptions(activeOptions.filter(o => o.id !== opt.id)); // Zaten seçiliyse çıkar
+        } else {
+            setActiveOptions([...activeOptions, opt]); // Seçili değilse ekle
+        }
+    };
+
+    // Pop-up'ta "Sepete Ekle" butonuna basınca
+    const confirmOptionsAndAdd = () => {
+        handleStageItem(selectedProductForModal, activeOptions);
+        setShowModal(false);
+        setSelectedProductForModal(null);
     };
 
     const handleRemovePending = (productId) => {
@@ -71,7 +124,12 @@ const WaiterOrder = () => {
         if (pendingItems.length === 0) return;
         try {
             const promises = pendingItems.map(item =>
-                api.post(`/orders/table/${tableId}/add-item`, { productId: item.id, price: item.price, quantity: item.quantity })
+                api.post(`/orders/table/${tableId}/add-item`, {
+                    productId: item.id,
+                    price: item.basePrice, // Ürünün ham fiyatını yolla (Backend üstüne ekler)
+                    quantity: item.quantity,
+                    selectedOptions: item.selectedOptions // YENİ: Seçenekleri yolla
+                })
             );
             await Promise.all(promises);
             setPendingItems([]);
@@ -121,6 +179,18 @@ const WaiterOrder = () => {
                                             <span style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
                                                 {gItem.totalQty}x {gItem.Product?.name || 'Ürün'}
                                             </span>
+                                            {/* Hem pendingItems hem de veritabanından gelen groupedOrderItems için */}
+                                            {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                                <div style={{ fontSize: '11px', color: '#d4af37', marginLeft: '20px' }}>
+                                                    ↳ + {item.selectedOptions.map(o => o.name).join(', ')}
+                                                </div>
+                                            )}
+                                            {/* (Eski veritabanı kayıtları için selected_options da kullanılıyor olabilir, kontrol edersin) */}
+                                            {item.selected_options && item.selected_options.length > 0 && (
+                                                <div style={{ fontSize: '11px', color: '#d4af37', marginLeft: '20px' }}>
+                                                    ↳ + {item.selected_options.map(o => o.name).join(', ')}
+                                                </div>
+                                            )}
                                         </div>
                                         {/* BÜYÜ BURADA: Garson silemez (X butonu yok) */}
                                         <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
@@ -181,6 +251,41 @@ const WaiterOrder = () => {
                     ))}
                 </div>
             </div>
+
+            {/* SEÇENEKLER POP-UP EKRANI */}
+            {showModal && selectedProductForModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>{selectedProductForModal.name}</h3>
+                            <p>Ekstra özellik veya porsiyon seçin</p>
+                        </div>
+
+                        <div className="options-grid">
+                            {selectedProductForModal.ProductOptions.map(opt => {
+                                const isSelected = activeOptions.some(o => o.id === opt.id);
+                                return (
+                                    <button
+                                        key={opt.id}
+                                        className={`option-btn ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => toggleOption(opt)}
+                                    >
+                                        <span>{opt.name}</span>
+                                        <span className="option-price">
+                                            {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="cancel-btn" onClick={() => setShowModal(false)}>İptal</button>
+                            <button className="confirm-btn" onClick={confirmOptionsAndAdd}>Siparişe Ekle</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

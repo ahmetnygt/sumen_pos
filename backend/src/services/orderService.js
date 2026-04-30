@@ -7,7 +7,7 @@ exports.getActiveOrder = async (tableId) => {
     });
 };
 
-exports.addItemToOrder = async (tableId, userId, productId, price, quantity = 1) => {
+exports.addItemToOrder = async (tableId, userId, productId, basePrice, quantity = 1, selectedOptions = null) => {
     const t = await sequelize.transaction();
     try {
         let order = await Order.findOne({ where: { table_id: tableId, status: 'Açık' }, transaction: t });
@@ -16,26 +16,51 @@ exports.addItemToOrder = async (tableId, userId, productId, price, quantity = 1)
             await Table.update({ status: 'Dolu' }, { where: { id: tableId }, transaction: t });
         }
 
-        const itemTotal = parseFloat(price) * quantity;
+        // 1. Ekstra fiyat farklarını hesapla (Örn: Duble ise +250 TL eklenecek)
+        let extraPrice = 0;
+        if (selectedOptions && selectedOptions.length > 0) {
+            for (const opt of selectedOptions) {
+                extraPrice += parseFloat(opt.price_diff || 0);
+            }
+        }
 
-        // BÜYÜ BURADA: Aynı üründen daha önce girilmişse (ve henüz ödenmemişse) üstüne ekle (x2, x3)
-        let orderItem = await OrderItem.findOne({
+        const finalUnitPrice = parseFloat(basePrice) + extraPrice;
+        const itemTotal = finalUnitPrice * quantity;
+
+        // 2. Akıllı Adisyon Birleştirme: Aynı üründen var mı? VARSA seçenekleri BİREBİR AYNI MI?
+        const existingItems = await OrderItem.findAll({
             where: { order_id: order.id, product_id: productId, status: 'Siparişte' },
             transaction: t
         });
 
-        if (orderItem) {
-            await orderItem.increment('quantity', { by: quantity, transaction: t });
+        let sameItem = null;
+        for (const item of existingItems) {
+            // Eğer daha önceki ürünle yeni gelen ürünün ekstraları %100 aynıysa (ikisi de duble, ikisi de buzluysa) birleştir.
+            if (JSON.stringify(item.selected_options) === JSON.stringify(selectedOptions)) {
+                sameItem = item;
+                break;
+            }
+        }
+
+        if (sameItem) {
+            // Aynı seçenekli ürün masada varsa, adisyonu uzatma, sadece miktarını arttır (x2 yap)
+            await sameItem.increment('quantity', { by: quantity, transaction: t });
         } else {
-            orderItem = await OrderItem.create({
-                order_id: order.id, product_id: productId, price: price, quantity: quantity, status: 'Siparişte'
+            // Seçenekler farklıysa veya ürün ilk defa ekleniyorsa, masaya YENİ SATIR aç!
+            await OrderItem.create({
+                order_id: order.id,
+                product_id: productId,
+                price: finalUnitPrice, // Fiyat artık baz fiyat + ekstralar oldu
+                quantity: quantity,
+                status: 'Siparişte',
+                selected_options: selectedOptions // Seçenekleri JSON olarak fişe kaydet
             }, { transaction: t });
         }
 
-        // Hesabı kabart
+        // Ana hesabı kabart
         await order.increment('total_amount', { by: itemTotal, transaction: t });
 
-        // Stoklardan düş
+        // Stoklardan malı düş (Reçete Motoru aynen çalışmaya devam ediyor)
         const recipes = await Recipe.findAll({ where: { product_id: productId }, transaction: t });
         for (const recipe of recipes) {
             const totalDeduction = parseFloat(recipe.amount_used) * quantity;
@@ -43,7 +68,7 @@ exports.addItemToOrder = async (tableId, userId, productId, price, quantity = 1)
         }
 
         await t.commit();
-        return orderItem;
+        return { message: 'Sipariş başarıyla işlendi.' };
     } catch (error) {
         await t.rollback();
         throw new Error('Sipariş eklenemedi: ' + error.message);
@@ -116,21 +141,21 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
         const total = parseFloat(order.total_amount);
         const discount = parseFloat(order.discount_amount || 0);
         const currentPaid = parseFloat(order.paid_amount || 0);
-        
+
         const remaining = total - discount - currentPaid;
 
         if (amountToPay > remaining + 0.01) {
-             throw new Error(`Kalan tutardan (${remaining.toFixed(2)} ₺) fazla para çekemezsin!`);
+            throw new Error(`Kalan tutardan (${remaining.toFixed(2)} ₺) fazla para çekemezsin!`);
         }
 
         // BÜYÜ BURADA: Seçili ürünlerin miktarlarını kontrol edip satırları bölüyoruz
         if (paidItems && paidItems.length > 0) {
             for (const pItem of paidItems) {
-                const orderItem = await OrderItem.findOne({ 
-                    where: { id: pItem.id, order_id: order.id, status: 'Siparişte' }, 
-                    transaction: t 
+                const orderItem = await OrderItem.findOne({
+                    where: { id: pItem.id, order_id: order.id, status: 'Siparişte' },
+                    transaction: t
                 });
-                
+
                 if (orderItem) {
                     if (orderItem.quantity == pItem.qty) {
                         // Hepsini ödediyse direkt status değiştir
@@ -139,7 +164,7 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
                         // Sadece bir kısmını ödediyse (Örn: 3 biranın 1'i)
                         // 1. Kalanı güncelle (Siparişte kalacak olanlar)
                         await orderItem.update({ quantity: orderItem.quantity - pItem.qty }, { transaction: t });
-                        
+
                         // 2. Ödenen kısmı yeni satır olarak fırlat
                         await OrderItem.create({
                             order_id: order.id,
@@ -155,11 +180,11 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
 
         const newPaidAmount = currentPaid + amountToPay;
 
-        if (newPaidAmount >= remaining - 0.01) { 
+        if (newPaidAmount >= remaining - 0.01) {
             await order.update({ paid_amount: total, status: 'Ödendi' }, { transaction: t });
             await Table.update({ status: 'Boş' }, { where: { id: tableId }, transaction: t });
             await OrderItem.update({ status: 'Ödendi' }, { where: { order_id: order.id, status: 'Siparişte' }, transaction: t });
-            
+
             await t.commit();
             return { message: 'Hesap komple kapatıldı.', isFullyPaid: true };
         } else {

@@ -18,8 +18,10 @@ exports.getActiveOrder = async (req, res) => {
 
 exports.addItem = async (req, res) => {
     try {
-        const { productId, price, quantity } = req.body;
-        const orderItem = await orderService.addItemToOrder(req.params.tableId, req.user.id, productId, price, quantity);
+        const { productId, price, quantity, selectedOptions } = req.body;
+
+        // Servise selectedOptions'ı da paslıyoruz
+        const orderItem = await orderService.addItemToOrder(req.params.tableId, req.user.id, productId, price, quantity, selectedOptions);
 
         const table = await Table.findByPk(req.params.tableId);
         if (table) {
@@ -114,8 +116,8 @@ exports.getLiveSummary = async (req, res) => {
         }));
 
         res.status(200).json({ logs });
-    } catch (error) { 
+    } catch (error) {
         console.error("Radar Verisi Çekilemedi:", error);
-        res.status(500).json({ message: 'Özet alınamadı' }); 
+        res.status(500).json({ message: 'Özet alınamadı' });
     }
 };
