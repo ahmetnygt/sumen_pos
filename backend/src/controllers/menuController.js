@@ -54,3 +54,25 @@ exports.deleteProduct = async (req, res) => {
         res.status(400).json({ message: 'Ürün silinemedi.', error: error.message });
     }
 };
+
+// Ürüne yeni seçenek (Duble, Enerji vs) ekleme
+exports.addProductOption = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const { name, price_diff } = req.body;
+        const option = await ProductOption.create({ product_id: productId, name, price_diff });
+        res.status(201).json(option);
+    } catch (error) {
+        res.status(400).json({ message: 'Opsiyon eklenemedi.', error: error.message });
+    }
+};
+
+// Seçenek silme
+exports.deleteProductOption = async (req, res) => {
+    try {
+        await ProductOption.destroy({ where: { id: req.params.optionId } });
+        res.status(200).json({ message: 'Opsiyon silindi.' });
+    } catch (error) {
+        res.status(400).json({ message: 'Opsiyon silinemedi.' });
+    }
+};

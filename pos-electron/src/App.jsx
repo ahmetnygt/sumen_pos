@@ -7,8 +7,6 @@ import Order from './pages/Order';
 import AdminPanel from './pages/AdminPanel';
 import StockMenu from './pages/StockMenu';
 import Personnel from './pages/Personnel';
-import WaiterDashboard from './pages/WaiterDashboard'; // YENİ
-import WaiterOrder from './pages/WaiterOrder'; // YENİ
 
 function App() {
   return (
@@ -22,10 +20,6 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/stock-menu" element={<StockMenu />} />
         <Route path="/personnel" element={<Personnel />} />
-
-        {/* GARSON ROTALARI */}
-        <Route path="/waiter-dashboard" element={<WaiterDashboard />} />
-        <Route path="/waiter-order/:tableId" element={<WaiterOrder />} />
       </Routes>
     </Router>
   );

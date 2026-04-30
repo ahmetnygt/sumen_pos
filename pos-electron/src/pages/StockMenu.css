@@ -355,3 +355,52 @@
 .modal-box button[type="submit"]:hover {
     background: #32a852;
 }
+
+.option-manage-btn {
+    background: #222;
+    color: #d4af37;
+    border: 1px solid #d4af37;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.add-option-inline {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: #111;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.add-option-inline input {
+    flex: 1;
+    margin: 0 !important;
+}
+
+.options-list-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-opt-item {
+    display: flex;
+    justify-content: space-between;
+    background: #1a1a1a;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    align-items: center;
+}
+
+.del-btn-small {
+    background: transparent;
+    color: #ff4444;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}

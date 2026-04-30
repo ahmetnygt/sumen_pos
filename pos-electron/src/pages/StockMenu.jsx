@@ -148,6 +148,7 @@ const StockMenu = () => {
                                             <td>{prod.Category?.name || 'Kategorisiz'}</td>
                                             <td>
                                                 <button className="edit-icon" onClick={() => { setFormData(prod); setShowModal('product'); }}>✎</button>
+                                                <button className="option-manage-btn" onClick={() => { setFormData(prod); setShowModal('manage_options'); }}>⚙️</button>
                                                 <button className="delete-icon" onClick={() => handleDelete('/menu/product', prod.id)}>✕</button>
                                             </td>
                                         </tr>
@@ -244,24 +245,65 @@ const StockMenu = () => {
                         )}
 
                         {showModal === 'recipe' && (
-                            <form onSubmit={async (e) => {
-                                e.preventDefault();
-                                try {
-                                    await api.post('/inventory/recipes', { product_id: selectedProduct.id, ...formData });
-                                    setShowModal(null);
-                                    handleRecipeSelect(selectedProduct);
-                                } catch (err) {
-                                    alert("Hata: " + (err.response?.data?.message || err.message));
-                                }
-                            }}>
-                                <h3>Hammadde Bağla</h3>
+                            <form onSubmit={handleRecipeSubmit}>
+                                <h3>{selectedProduct.name} İçin Reçete</h3>
+
+                                {/* BÜYÜ BURADA: Reçete ana ürüne mi yoksa bir seçeneğe mi (Duble vs) ait? */}
+                                <div className="form-group">
+                                    <label>Kime Ait?</label>
+                                    <select
+                                        value={formData.option_id || ''}
+                                        onChange={e => setFormData({ ...formData, option_id: e.target.value || null })}
+                                    >
+                                        <option value="">Ürünün Kendisi (Baz Reçete)</option>
+                                        {selectedProduct.ProductOptions?.map(opt => (
+                                            <option key={opt.id} value={opt.id}>Seçenek: {opt.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <select value={formData.ingredient_id || ''} onChange={e => setFormData({ ...formData, ingredient_id: e.target.value })} required>
-                                    <option value="">Seçiniz...</option>
+                                    <option value="">Hammadde Seçiniz...</option>
                                     {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>)}
                                 </select>
+
                                 <input type="number" step="0.01" placeholder="Miktar" value={formData.amount_used || ''} onChange={e => setFormData({ ...formData, amount_used: e.target.value })} required />
-                                <button type="submit">Ekle</button>
+                                <button type="submit">Reçeteye Ekle</button>
                             </form>
+                        )}
+
+                        {showModal === 'manage_options' && (
+                            <div className="modal-overlay">
+                                <div className="modal-box luxury-modal">
+                                    <button className="close-modal" onClick={() => setShowModal(null)}>✕</button>
+                                    <h3>{formData.name} - Seçenek Yönetimi</h3>
+
+                                    {/* Yeni Seçenek Ekleme Formu */}
+                                    <div className="add-option-inline">
+                                        <input type="text" placeholder="Örn: Duble" id="new_opt_name" />
+                                        <input type="number" placeholder="+ Fiyat" id="new_opt_price" />
+                                        <button onClick={async () => {
+                                            const name = document.getElementById('new_opt_name').value;
+                                            const price = document.getElementById('new_opt_price').value;
+                                            await api.post(`/menu/product/${formData.id}/option`, { name, price_diff: price });
+                                            fetchData(); // Listeyi yenile
+                                        }}>Ekle</button>
+                                    </div>
+
+                                    {/* Mevcut Seçenekler Listesi */}
+                                    <div className="options-list-admin">
+                                        {formData.ProductOptions?.map(opt => (
+                                            <div key={opt.id} className="admin-opt-item">
+                                                <span>{opt.name} (+₺{opt.price_diff})</span>
+                                                <button className="del-btn-small" onClick={async () => {
+                                                    await api.delete(`/menu/option/${opt.id}`);
+                                                    fetchData();
+                                                }}>✕</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

@@ -42,6 +42,10 @@ OrderItem.belongsTo(Product, { foreignKey: 'product_id' });
 Product.hasMany(ProductOption, { foreignKey: 'product_id' });
 ProductOption.belongsTo(Product, { foreignKey: 'product_id' });
 
+// Seçenek <-> Ekstra Reçete İlişkisi Eklendi
+ProductOption.hasMany(Recipe, { foreignKey: 'option_id', onDelete: 'CASCADE' });
+Recipe.belongsTo(ProductOption, { foreignKey: 'option_id' });
+
 
 // Tüm modelleri dışarı aktar
 module.exports = {

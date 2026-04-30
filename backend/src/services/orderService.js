@@ -60,11 +60,28 @@ exports.addItemToOrder = async (tableId, userId, productId, basePrice, quantity 
         // Ana hesabı kabart
         await order.increment('total_amount', { by: itemTotal, transaction: t });
 
-        // Stoklardan malı düş (Reçete Motoru aynen çalışmaya devam ediyor)
-        const recipes = await Recipe.findAll({ where: { product_id: productId }, transaction: t });
-        for (const recipe of recipes) {
+        // 1. AŞAMA: Ana Ürünün Stoklarını Düş (Örn: 4cl Chivas)
+        const baseRecipes = await Recipe.findAll({
+            where: { product_id: productId, option_id: null },
+            transaction: t
+        });
+        for (const recipe of baseRecipes) {
             const totalDeduction = parseFloat(recipe.amount_used) * quantity;
             await Ingredient.decrement('stock_amount', { by: totalDeduction, where: { id: recipe.ingredient_id }, transaction: t });
+        }
+
+        // 2. AŞAMA: Seçilen Ekstraların Stoklarını Düş (Örn: Duble için +4cl, Enerji için +1 Redbull)
+        if (selectedOptions && selectedOptions.length > 0) {
+            for (const opt of selectedOptions) {
+                const optRecipes = await Recipe.findAll({
+                    where: { option_id: opt.id },
+                    transaction: t
+                });
+                for (const recipe of optRecipes) {
+                    const totalDeduction = parseFloat(recipe.amount_used) * quantity;
+                    await Ingredient.decrement('stock_amount', { by: totalDeduction, where: { id: recipe.ingredient_id }, transaction: t });
+                }
+            }
         }
 
         await t.commit();
@@ -87,10 +104,28 @@ exports.cancelOrderItem = async (itemId) => {
 
         await order.decrement('total_amount', { by: itemTotal, transaction: t });
 
-        const recipes = await Recipe.findAll({ where: { product_id: item.product_id }, transaction: t });
-        for (const recipe of recipes) {
+        // 1. AŞAMA: Ana Ürün İadesi
+        const baseRecipes = await Recipe.findAll({
+            where: { product_id: item.product_id, option_id: null },
+            transaction: t
+        });
+        for (const recipe of baseRecipes) {
             const totalRefund = parseFloat(recipe.amount_used) * item.quantity;
             await Ingredient.increment('stock_amount', { by: totalRefund, where: { id: recipe.ingredient_id }, transaction: t });
+        }
+
+        // 2. AŞAMA: Seçeneklerin İadesi
+        if (item.selected_options && item.selected_options.length > 0) {
+            for (const opt of item.selected_options) {
+                const optRecipes = await Recipe.findAll({
+                    where: { option_id: opt.id },
+                    transaction: t
+                });
+                for (const recipe of optRecipes) {
+                    const totalRefund = parseFloat(recipe.amount_used) * item.quantity;
+                    await Ingredient.increment('stock_amount', { by: totalRefund, where: { id: recipe.ingredient_id }, transaction: t });
+                }
+            }
         }
 
         await item.destroy({ transaction: t }); // Ürünü adisyondan uçur
