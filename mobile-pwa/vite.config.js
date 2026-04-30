@@ -6,16 +6,21 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', 
-      includeAssets: ['favicon.svg', 'icons.svg'], 
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
-        name: 'Sümen Garson', 
+        name: 'Sümen Garson',
         short_name: 'Garson',
-        description: 'Sümen Restoran Garson Sipariş Sistemi',
-        theme_color: '#0a0a0a', 
+        description: 'Sümen Garson Mobil Sistemi',
+        theme_color: '#0a0a0a',
         background_color: '#0a0a0a',
-        display: 'standalone', 
-        orientation: 'portrait', 
+
+        // BÜYÜ BURADA: Chrome'a uygulamanın sınırlarını öğretiyoruz
+        display: 'standalone',
+        start_url: '/',
+        scope: '/', // <--- HAYAT KURTARAN SATIR BU
+
+        orientation: 'portrait',
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -34,6 +39,6 @@ export default defineConfig({
   ],
   server: {
     port: 5174,
-    host: true, // ŞART: Ağdaki telefon/tabletler bağlanabilsin diye
+    host: true,
   }
 });
