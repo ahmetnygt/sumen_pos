@@ -171,7 +171,8 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
                             product_id: orderItem.product_id,
                             price: orderItem.price,
                             quantity: pItem.qty,
-                            status: 'Ödendi'
+                            status: 'Ödendi',
+                            selected_options: orderItem.selected_options // BÜYÜ BURADA: Bunu eklemezsen seçenekler çöpe gider!
                         }, { transaction: t });
                     }
                 }

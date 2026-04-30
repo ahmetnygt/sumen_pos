@@ -107,16 +107,18 @@ const WaiterOrder = () => {
         setSelectedProductForModal(null);
     };
 
-    const handleRemovePending = (productId) => {
+    const handleRemovePending = (uniqueId) => {
         setPendingItems(prev => {
-            const existing = prev.find(item => item.id === productId);
+            const existing = prev.find(item => item.uniqueId === uniqueId);
             if (!existing) return prev;
             if (existing.quantity > 1) {
                 return prev.map(item =>
-                    item.id === productId ? { ...item, quantity: item.quantity - 1, lineTotal: item.lineTotal - parseFloat(item.price || 0) } : item
+                    item.uniqueId === uniqueId
+                        ? { ...item, quantity: item.quantity - 1, lineTotal: item.lineTotal - (item.lineTotal / item.quantity) }
+                        : item
                 );
             }
-            return prev.filter(item => item.id !== productId);
+            return prev.filter(item => item.uniqueId !== uniqueId);
         });
     };
 
@@ -147,13 +149,16 @@ const WaiterOrder = () => {
     const remaining = Math.max(0, totalAmount - parseFloat(order?.paid_amount || 0) - parseFloat(order?.discount_amount || 0));
 
     const orderItemsSafe = order?.OrderItems || [];
-    const groupedOrderItems = orderItemsSafe.reduce((acc, item) => {
-        const key = `${item.product_id}-${item.status}`;
+    const groupedOrderItems = order?.OrderItems?.reduce((acc, item) => {
+        // Seçenekleri de key'e ekliyoruz ki aynı ürünün farklı seçenekleri alt alta ayrılsın
+        const optsKey = item.selected_options ? JSON.stringify(item.selected_options) : '';
+        const key = `${item.product_id}-${item.status}-${optsKey}`;
+
         if (!acc[key]) acc[key] = { ...item, totalQty: 0, sumPrice: 0 };
         acc[key].totalQty += item.quantity || 1;
         acc[key].sumPrice += parseFloat(item.price || 0) * (item.quantity || 1);
         return acc;
-    }, {});
+    }, {}) || {};
 
     if (loading) return <div className="loading-screen">Yükleniyor...</div>;
 
@@ -168,34 +173,33 @@ const WaiterOrder = () => {
 
                 <div className="receipt-body">
                     <div ref={orderListRef} style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
-                        <h3 className="section-title">MASADAKİLER</h3>
+                        <h3 className="section-title">İŞLENEN SİPARİŞLER</h3>
                         {Object.keys(groupedOrderItems).length === 0 ? (
                             <p style={{ color: '#444', fontSize: '12px', fontStyle: 'italic' }}>Kayıtlı sipariş yok.</p>
                         ) : (
                             <ul className="order-list">
                                 {Object.values(groupedOrderItems).map(gItem => (
-                                    <li key={`${gItem.product_id}-${gItem.status}`} className="order-list-item">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
-                                                {gItem.totalQty}x {gItem.Product?.name || 'Ürün'}
-                                            </span>
-                                            {/* Hem pendingItems hem de veritabanından gelen groupedOrderItems için */}
-                                            {item.selectedOptions && item.selectedOptions.length > 0 && (
-                                                <div style={{ fontSize: '11px', color: '#d4af37', marginLeft: '20px' }}>
-                                                    ↳ + {item.selectedOptions.map(o => o.name).join(', ')}
-                                                </div>
-                                            )}
-                                            {/* (Eski veritabanı kayıtları için selected_options da kullanılıyor olabilir, kontrol edersin) */}
-                                            {item.selected_options && item.selected_options.length > 0 && (
-                                                <div style={{ fontSize: '11px', color: '#d4af37', marginLeft: '20px' }}>
-                                                    ↳ + {item.selected_options.map(o => o.name).join(', ')}
+                                    <li key={`${gItem.product_id}-${gItem.status}-${Math.random()}`} className="order-list-item">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
+                                                    {gItem.totalQty}x {gItem.Product?.name}
+                                                </span>
+                                                {gItem.status === 'Ödendi' && <span className="paid-badge-small">ÖDENDİ</span>}
+                                            </div>
+                                            {/* BÜYÜ BURADA: Seçenekleri adisyona yazdırıyoruz (gItem kullanarak) */}
+                                            {gItem.selected_options && gItem.selected_options.length > 0 && (
+                                                <div style={{ fontSize: '11px', color: gItem.status === 'Ödendi' ? '#555' : '#d4af37', paddingLeft: '10px' }}>
+                                                    ↳ + {gItem.selected_options.map(o => o.name).join(', ')}
                                                 </div>
                                             )}
                                         </div>
-                                        {/* BÜYÜ BURADA: Garson silemez (X butonu yok) */}
-                                        <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
-                                            ₺{gItem.sumPrice.toFixed(2)}
-                                        </strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
+                                                ₺{gItem.sumPrice.toFixed(2)}
+                                            </strong>
+                                            {gItem.status !== 'Ödendi' && <button className="cancel-btn-small" onClick={() => handleCancelItem(gItem.id)}>✕</button>}
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
@@ -203,14 +207,23 @@ const WaiterOrder = () => {
 
                         {pendingItems.length > 0 && (
                             <>
-                                <h3 className="section-title new-items-title">SİPARİŞE EKLE</h3>
+                                <h3 className="section-title new-items-title">YENİ EKLENENLER</h3>
                                 <ul className="order-list">
                                     {pendingItems.map(item => (
-                                        <li key={item.id} className="order-list-item pending-item-row">
-                                            <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{item.quantity}x {item.name}</span>
+                                        <li key={item.uniqueId} className="order-list-item pending-item-row">
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{item.quantity}x {item.name}</span>
+                                                {/* Sepete (Yeni Eklenenlere) eklenen seçenekler */}
+                                                {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                                    <div style={{ fontSize: '11px', color: '#d4af37', paddingLeft: '10px' }}>
+                                                        ↳ + {item.selectedOptions.map(o => o.name).join(', ')}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                                 <strong style={{ color: 'var(--primary-color)' }}>₺{item.lineTotal.toFixed(2)}</strong>
-                                                <button className="minus-btn" onClick={() => handleRemovePending(item.id)}>-</button>
+                                                {/* Eksi butonuna artık uniqueId gönderiyoruz */}
+                                                <button className="minus-btn" onClick={() => handleRemovePending(item.uniqueId)}>-</button>
                                             </div>
                                         </li>
                                     ))}
