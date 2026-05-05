@@ -14,7 +14,7 @@ router.post('/product', verifyToken, authorizeRoles('Admin'), menuController.add
 router.put('/product/:id', verifyToken, authorizeRoles('Admin'), menuController.updateProduct);
 router.delete('/product/:id', verifyToken, authorizeRoles('Admin'), menuController.deleteProduct);
 
-router.post('/product/:productId/option', authorizeRoles('Admin'), menuController.addProductOption);
-router.delete('/option/:optionId', authorizeRoles('Admin'), menuController.deleteProductOption);
+router.post('/product/:productId/option', verifyToken, authorizeRoles('Admin'), menuController.addProductOption);
+router.delete('/option/:optionId', verifyToken, authorizeRoles('Admin'), menuController.deleteProductOption);
 
 module.exports = router;

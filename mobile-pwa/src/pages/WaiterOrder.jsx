@@ -150,13 +150,29 @@ const WaiterOrder = () => {
 
     const orderItemsSafe = order?.OrderItems || [];
     const groupedOrderItems = order?.OrderItems?.reduce((acc, item) => {
-        // Seçenekleri de key'e ekliyoruz ki aynı ürünün farklı seçenekleri alt alta ayrılsın
-        const optsKey = item.selected_options ? JSON.stringify(item.selected_options) : '';
+        // 1. AŞAMA (GÜVENLİK DUVARI): Veritabanından string (metin) geldiyse onu gerçek Array'e çevir
+        let parsedOptions = item.selected_options;
+        if (typeof parsedOptions === 'string') {
+            try {
+                parsedOptions = JSON.parse(parsedOptions);
+            } catch (e) {
+                parsedOptions = [];
+            }
+        }
+        // Düzeltilmiş diziyi item'ın içine geri koy ki aşağıda HTML çizerken .map() çökmesin!
+        item.selected_options = parsedOptions;
+
+        // 2. AŞAMA: Gruplama anahtarını oluştur
+        const optsKey = item.selected_options && item.selected_options.length > 0
+            ? JSON.stringify(item.selected_options)
+            : '';
         const key = `${item.product_id}-${item.status}-${optsKey}`;
 
+        // 3. AŞAMA: Adisyondaki miktarları ve fiyatları topla
         if (!acc[key]) acc[key] = { ...item, totalQty: 0, sumPrice: 0 };
         acc[key].totalQty += item.quantity || 1;
         acc[key].sumPrice += parseFloat(item.price || 0) * (item.quantity || 1);
+
         return acc;
     }, {}) || {};
 

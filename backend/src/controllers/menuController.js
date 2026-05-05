@@ -1,4 +1,5 @@
 const menuService = require('../services/menuService');
+const { ProductOption } = require('../models');
 
 exports.getMenu = async (req, res) => {
     try {

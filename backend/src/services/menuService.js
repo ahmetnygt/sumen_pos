@@ -5,7 +5,7 @@ exports.getFullMenu = async () => {
     return await Category.findAll({
         include: [{
             model: Product,
-            where: { isActive: true },
+            where: { is_active: true },
             required: false, // İçi boş kategoriler de gelsin
             include: [
                 {

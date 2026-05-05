@@ -81,6 +81,21 @@ const StockMenu = () => {
         } catch (error) { alert('Hata: ' + (error.response?.data?.message || error.message)); }
     };
 
+    const handleRecipeSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            // Seçenek (Opsiyon) reçetesi mi yoksa Ana ürün reçetesi mi olduğunu formData ile yolluyoruz
+            await api.post('/inventory/recipes', {
+                product_id: selectedProduct.id,
+                ...formData
+            });
+            setShowModal(null);
+            handleRecipeSelect(selectedProduct); // Reçete listesini ekranda anında yenile
+        } catch (err) {
+            alert("Hata: " + (err.response?.data?.message || err.message));
+        }
+    };
+
     return (
         <div className="stock-menu-layout">
             <header className="stock-header">
