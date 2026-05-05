@@ -29,31 +29,28 @@ exports.delete = async (req, res) => {
     } catch (error) { res.status(400).json({ message: error.message }); }
 };
 
-// REÇETE MOTORU (Product - Ingredient Bağı)
+// --- REÇETE MOTORU (Seçenek/Opsiyon Uyumlu) ---
+
 exports.getProductRecipe = async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.productId, {
-            include: [{ model: Ingredient, through: { attributes: ['amount_used'] } }]
-        });
-        res.status(200).json(product?.Ingredients || []);
+        const recipes = await inventoryService.getRecipeByProduct(req.params.productId);
+        res.status(200).json(recipes);
     } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
 exports.addIngredientToRecipe = async (req, res) => {
     try {
-        const { product_id, ingredient_id, amount_used } = req.body;
-        const product = await Product.findByPk(product_id);
-        if (!product) throw new Error('Ürün bulunamadı.');
-
-        await product.addIngredient(ingredient_id, { through: { amount_used } });
+        await inventoryService.addIngredientToRecipe(req.body);
         res.status(200).json({ message: 'Reçete güncellendi.' });
-    } catch (error) { res.status(400).json({ message: error.message }); }
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
 };
 
 exports.removeIngredientFromRecipe = async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.productId);
-        await product.removeIngredient(req.params.ingredientId);
+        // Artık reçetenin benzersiz ID'sini yolluyoruz
+        await inventoryService.removeIngredientFromRecipe(req.params.recipeId);
         res.status(200).json({ message: 'Hammadde reçeteden çıkarıldı.' });
     } catch (error) { res.status(400).json({ message: error.message }); }
 };

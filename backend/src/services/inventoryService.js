@@ -1,4 +1,4 @@
-const { Ingredient, Recipe, Product } = require('../models');
+const { Ingredient, Recipe, Product, ProductOption } = require('../models');
 
 // --- HAMMADDE (STOK) YÖNETİMİ ---
 exports.getAllIngredients = async () => {
@@ -23,29 +23,51 @@ exports.deleteIngredient = async (id) => {
 };
 
 // --- REÇETE (FORMÜL) YÖNETİMİ ---
+
 exports.getRecipeByProduct = async (productId) => {
-    const product = await Product.findByPk(productId, {
-        include: [{
-            model: Ingredient,
-            through: { attributes: ['amount_used'] } // Sadece kullanılan miktarı getir
-        }]
+    const recipes = await Recipe.findAll({
+        where: { product_id: productId },
+        include: [
+            { model: Ingredient, attributes: ['id', 'name', 'unit'] },
+            { model: ProductOption, attributes: ['id', 'name'] }
+        ]
     });
-    if (!product) throw new Error('Ürün bulunamadı.');
-    return product;
+
+    // Frontend'in kolay okuyabilmesi için veriyi jilet gibi düzeltiyoruz
+    return recipes.map(r => ({
+        recipe_id: r.id, // BÜYÜ BURADA: Silme işlemi için artık bu eşsiz ID'yi kullanacağız!
+        ingredient_id: r.Ingredient?.id,
+        name: r.Ingredient?.name,
+        unit: r.Ingredient?.unit,
+        amount_used: r.amount_used,
+        option_id: r.option_id,
+        option_name: r.ProductOption ? r.ProductOption.name : null
+    }));
 };
 
 exports.addIngredientToRecipe = async (data) => {
-    // Aynı hammadde zaten formülde varsa hata fırlat
+    // Undefined veya boş string gelirse zorla null yap (400 hatasının kesin çözümü)
+    const optionId = data.option_id ? parseInt(data.option_id) : null;
+
     const existing = await Recipe.findOne({
-        where: { product_id: data.product_id, ingredient_id: data.ingredient_id }
+        where: {
+            product_id: data.product_id,
+            ingredient_id: data.ingredient_id,
+            option_id: optionId
+        }
     });
-    if (existing) throw new Error('Bu hammadde zaten formülde var!');
-    
-    return await Recipe.create(data);
+
+    if (existing) throw new Error('Bu hammadde bu reçeteye zaten eklenmiş!');
+
+    return await Recipe.create({
+        product_id: data.product_id,
+        ingredient_id: data.ingredient_id,
+        option_id: optionId,
+        amount_used: data.amount_used
+    });
 };
 
-exports.removeIngredientFromRecipe = async (productId, ingredientId) => {
-    return await Recipe.destroy({
-        where: { product_id: productId, ingredient_id: ingredientId }
-    });
+exports.removeIngredientFromRecipe = async (recipeId) => {
+    // Artık ürün+hammadde'ye göre değil, doğrudan o satırın Eşsiz ID'sine göre siliyoruz
+    return await Recipe.destroy({ where: { id: recipeId } });
 };

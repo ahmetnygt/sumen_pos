@@ -15,6 +15,6 @@ router.delete('/ingredients/:id', inventoryController.delete);
 // Reçete (Formül) Rotaları
 router.get('/recipes/:productId', inventoryController.getProductRecipe);
 router.post('/recipes', inventoryController.addIngredientToRecipe);
-router.delete('/recipes/:productId/:ingredientId', inventoryController.removeIngredientFromRecipe);
+router.delete('/recipes/:recipeId', inventoryController.removeIngredientFromRecipe);;
 
 module.exports = router;

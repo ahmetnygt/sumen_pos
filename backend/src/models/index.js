@@ -20,8 +20,8 @@ Category.hasMany(Product, { foreignKey: 'category_id' });
 Product.belongsTo(Category, { foreignKey: 'category_id' });
 
 // Ürün <-> Hammadde İlişkisi (Çoka Çok İlişki - Ara Tablo: Recipe)
-Product.belongsToMany(Ingredient, { through: Recipe, foreignKey: 'product_id' });
-Ingredient.belongsToMany(Product, { through: Recipe, foreignKey: 'ingredient_id' });
+Product.belongsToMany(Ingredient, { through: Recipe, foreignKey: 'product_id', uniqueKey:false });
+Ingredient.belongsToMany(Product, { through: Recipe, foreignKey: 'ingredient_id', uniqueKey:false });
 
 // Masa <-> Adisyon İlişkisi
 Table.hasMany(Order, { foreignKey: 'table_id' });
@@ -45,6 +45,12 @@ ProductOption.belongsTo(Product, { foreignKey: 'product_id' });
 // Seçenek <-> Ekstra Reçete İlişkisi Eklendi
 ProductOption.hasMany(Recipe, { foreignKey: 'option_id', onDelete: 'CASCADE' });
 Recipe.belongsTo(ProductOption, { foreignKey: 'option_id' });
+
+Recipe.belongsTo(Ingredient, { foreignKey: 'ingredient_id' });
+Ingredient.hasMany(Recipe, { foreignKey: 'ingredient_id' });
+
+Recipe.belongsTo(Product, { foreignKey: 'product_id' });
+Product.hasMany(Recipe, { foreignKey: 'product_id' });
 
 
 // Tüm modelleri dışarı aktar

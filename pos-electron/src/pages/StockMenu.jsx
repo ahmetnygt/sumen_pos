@@ -47,11 +47,7 @@ const StockMenu = () => {
         setCurrentRecipe([]);
         try {
             const res = await api.get(`/inventory/recipes/${product.id}`);
-
-            // ÇÖZÜMÜN KRALI: Backend ürünü dönüyor, biz içindeki Ingredients listesini cımbızlıyoruz!
-            const fetchedIngredients = res.data?.Ingredients || res.data?.ingredients || [];
-            setCurrentRecipe(fetchedIngredients);
-
+            setCurrentRecipe(res.data || []);
         } catch (error) {
             console.error("Reçete çekilemedi:", error);
             setCurrentRecipe([]);
@@ -186,34 +182,78 @@ const StockMenu = () => {
                         </div>
                         <div className="recipe-details">
                             {selectedProduct ? (
-                                <>
-                                    <div className="recipe-header-row">
-                                        <h3>{selectedProduct.name} İçeriği</h3>
-                                        <button className="add-btn-small" onClick={() => { setFormData({ product_id: selectedProduct.id }); setShowModal('recipe'); }}>+ Ekle</button>
+                                <div className="recipes-container">
+                                    {/* --- 1. ANA REÇETE KISMI --- */}
+                                    <div className="recipe-section">
+                                        <div className="recipe-header-row">
+                                            <h3 style={{ color: 'var(--primary-color)' }}>{selectedProduct.name} (Ana Reçete)</h3>
+                                            <button className="add-btn-small" onClick={() => {
+                                                setFormData({ product_id: selectedProduct.id, option_id: null });
+                                                setShowModal('recipe');
+                                            }}>+ Ana Reçeteye Ekle</button>
+                                        </div>
+                                        <table className="luxury-table">
+                                            <thead><tr><th>Hammadde</th><th>Miktar</th><th>Birim</th><th>İşlem</th></tr></thead>
+                                            <tbody>
+                                                {currentRecipe.filter(r => r.option_id === null).length > 0 ? (
+                                                    currentRecipe.filter(r => r.option_id === null).map(ing => (
+                                                        <tr key={ing.recipe_id}>
+                                                            <td>{ing.name}</td>
+                                                            <td>{ing.amount_used}</td>
+                                                            <td>{ing.unit}</td>
+                                                            <td>
+                                                                <button className="delete-icon" onClick={async () => {
+                                                                    await api.delete(`/inventory/recipes/${ing.recipe_id}`);
+                                                                    handleRecipeSelect(selectedProduct);
+                                                                }}>✕</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Ana reçete boş.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <table className="luxury-table">
-                                        <thead><tr><th>Hammadde</th><th>Miktar</th><th>Birim</th><th>İşlem</th></tr></thead>
-                                        <tbody>
-                                            {currentRecipe.length > 0 ? (
-                                                currentRecipe.map(ing => (
-                                                    <tr key={ing.id}>
-                                                        <td>{ing.name}</td>
-                                                        <td>{ing.Recipe?.amount_used || '0'}</td>
-                                                        <td>{ing.unit}</td>
-                                                        <td>
-                                                            <button className="delete-icon" onClick={async () => {
-                                                                await api.delete(`/inventory/recipes/${selectedProduct.id}/${ing.id}`);
-                                                                handleRecipeSelect(selectedProduct);
-                                                            }}>✕</button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Reçete boş.</td></tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </>
+
+                                    {/* --- 2. SEÇENEKLERİN (OPSİYON) REÇETELERİ --- */}
+                                    {selectedProduct.ProductOptions?.map(opt => {
+                                        const optRecipes = currentRecipe.filter(r => r.option_id === opt.id);
+                                        return (
+                                            <div key={opt.id} className="recipe-section" style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '15px' }}>
+                                                <div className="recipe-header-row">
+                                                    <h4 style={{ color: '#00ffcc', margin: 0 }}>Seçenek: {opt.name} <span style={{ fontSize: '12px', color: '#aaa' }}>(+₺{opt.price_diff})</span></h4>
+                                                    <button className="add-btn-small" onClick={() => {
+                                                        setFormData({ product_id: selectedProduct.id, option_id: opt.id });
+                                                        setShowModal('recipe');
+                                                    }}>+ Bu Seçeneğe Ekle</button>
+                                                </div>
+                                                <table className="luxury-table">
+                                                    <thead><tr><th>Hammadde</th><th>Ekstra Miktar</th><th>Birim</th><th>İşlem</th></tr></thead>
+                                                    <tbody>
+                                                        {optRecipes.length > 0 ? (
+                                                            optRecipes.map(ing => (
+                                                                <tr key={ing.recipe_id}>
+                                                                    <td>{ing.name}</td>
+                                                                    <td><span style={{ color: '#d4af37' }}>+{ing.amount_used}</span></td>
+                                                                    <td>{ing.unit}</td>
+                                                                    <td>
+                                                                        <button className="delete-icon" onClick={async () => {
+                                                                            await api.delete(`/inventory/recipes/${ing.recipe_id}`);
+                                                                            handleRecipeSelect(selectedProduct);
+                                                                        }}>✕</button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '15px', color: '#555', fontStyle: 'italic' }}>Bu seçeneğe ekstra reçete atanmamış.</td></tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             ) : <div className="empty-state">Düzenlemek için ürün seçin.</div>}
                         </div>
                     </div>
@@ -261,21 +301,12 @@ const StockMenu = () => {
 
                         {showModal === 'recipe' && (
                             <form onSubmit={handleRecipeSubmit}>
-                                <h3>{selectedProduct.name} İçin Reçete</h3>
-
-                                {/* BÜYÜ BURADA: Reçete ana ürüne mi yoksa bir seçeneğe mi (Duble vs) ait? */}
-                                <div className="form-group">
-                                    <label>Kime Ait?</label>
-                                    <select
-                                        value={formData.option_id || ''}
-                                        onChange={e => setFormData({ ...formData, option_id: e.target.value || null })}
-                                    >
-                                        <option value="">Ürünün Kendisi (Baz Reçete)</option>
-                                        {selectedProduct.ProductOptions?.map(opt => (
-                                            <option key={opt.id} value={opt.id}>Seçenek: {opt.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <h3>{selectedProduct.name} Reçetesi</h3>
+                                <p style={{ color: '#aaa', marginBottom: '15px' }}>
+                                    Hedef: {formData.option_id
+                                        ? <span style={{ color: '#00ffcc' }}>Seçenek ({selectedProduct.ProductOptions.find(o => o.id === formData.option_id)?.name})</span>
+                                        : <span style={{ color: 'var(--primary-color)' }}>Ana Reçete</span>}
+                                </p>
 
                                 <select value={formData.ingredient_id || ''} onChange={e => setFormData({ ...formData, ingredient_id: e.target.value })} required>
                                     <option value="">Hammadde Seçiniz...</option>
@@ -283,7 +314,7 @@ const StockMenu = () => {
                                 </select>
 
                                 <input type="number" step="0.01" placeholder="Miktar" value={formData.amount_used || ''} onChange={e => setFormData({ ...formData, amount_used: e.target.value })} required />
-                                <button type="submit">Reçeteye Ekle</button>
+                                <button type="submit">Ekle</button>
                             </form>
                         )}
 
