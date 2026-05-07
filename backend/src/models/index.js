@@ -19,10 +19,6 @@ const SystemLog = require('./SystemLog');
 Category.hasMany(Product, { foreignKey: 'category_id' });
 Product.belongsTo(Category, { foreignKey: 'category_id' });
 
-// Ürün <-> Hammadde İlişkisi (Çoka Çok İlişki - Ara Tablo: Recipe)
-Product.belongsToMany(Ingredient, { through: Recipe, foreignKey: 'product_id', uniqueKey:false });
-Ingredient.belongsToMany(Product, { through: Recipe, foreignKey: 'ingredient_id', uniqueKey:false });
-
 // Masa <-> Adisyon İlişkisi
 Table.hasMany(Order, { foreignKey: 'table_id' });
 Order.belongsTo(Table, { foreignKey: 'table_id' });

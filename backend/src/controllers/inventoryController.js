@@ -42,14 +42,16 @@ exports.addIngredientToRecipe = async (req, res) => {
     try {
         await inventoryService.addIngredientToRecipe(req.body);
         res.status(200).json({ message: 'Reçete güncellendi.' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
+    } catch (error) { 
+        // BÜYÜ BURADA: Hatayı terminale kırmızı kırmızı yazdıracak!
+        console.error("\n❌❌ REÇETE EKLEME HATASI:", error.message, "\n");
+        res.status(400).json({ message: error.message }); 
     }
 };
 
 exports.removeIngredientFromRecipe = async (req, res) => {
     try {
-        // Artık reçetenin benzersiz ID'sini yolluyoruz
+        // Artık benzersiz recipeId ile siliyoruz
         await inventoryService.removeIngredientFromRecipe(req.params.recipeId);
         res.status(200).json({ message: 'Hammadde reçeteden çıkarıldı.' });
     } catch (error) { res.status(400).json({ message: error.message }); }

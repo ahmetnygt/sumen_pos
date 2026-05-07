@@ -125,18 +125,20 @@ const WaiterOrder = () => {
     const handleSendPendingOrders = async () => {
         if (pendingItems.length === 0) return;
         try {
-            const promises = pendingItems.map(item =>
-                api.post(`/orders/table/${tableId}/add-item`, {
+            // BÜYÜ BURADA: Promise.all YERİNE for...of KULLANIYORUZ (Sırayla ve Güvenle)
+            for (const item of pendingItems) {
+                await api.post(`/orders/table/${tableId}/add-item`, {
                     productId: item.id,
-                    price: item.basePrice, // Ürünün ham fiyatını yolla (Backend üstüne ekler)
+                    price: item.basePrice, // Ürünün ham fiyatını yolla
                     quantity: item.quantity,
-                    selectedOptions: item.selectedOptions // YENİ: Seçenekleri yolla
-                })
-            );
-            await Promise.all(promises);
+                    selectedOptions: item.selectedOptions // Seçenekleri yolla
+                });
+            }
             setPendingItems([]);
             fetchData();
-        } catch (error) { alert('Siparişler gönderilemedi!'); }
+        } catch (error) {
+            alert('Siparişler gönderilemedi! Hata: ' + (error.response?.data?.message || error.message));
+        }
     };
 
     const getActiveProducts = () => {
@@ -273,9 +275,9 @@ const WaiterOrder = () => {
                 </div>
                 <div className="product-grid">
                     {getActiveProducts().map(prod => (
-                        <button key={prod.id} className="prod-btn" onClick={() => handleStageItem(prod)}>
+                        <button key={prod.id} className="prod-btn" onClick={() => handleProductClick(prod)}>
                             <span className="prod-name">{prod.name}</span>
-                            <span className="prod-price">₺{parseFloat(prod.price || 0).toFixed(2)}</span>
+                            <span className="prod-price">₺{parseFloat(prod.price).toFixed(2)}</span>
                         </button>
                     ))}
                 </div>

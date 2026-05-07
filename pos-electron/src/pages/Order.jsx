@@ -143,18 +143,20 @@ const Order = () => {
   const handleSendPendingOrders = async () => {
     if (pendingItems.length === 0) return;
     try {
-      const promises = pendingItems.map(item =>
-        api.post(`/orders/table/${tableId}/add-item`, {
+      // BÜYÜ BURADA: Promise.all YERİNE for...of KULLANIYORUZ (Sırayla ve Güvenle)
+      for (const item of pendingItems) {
+        await api.post(`/orders/table/${tableId}/add-item`, {
           productId: item.id,
-          price: item.basePrice, // Ürünün ham fiyatını yolla (Backend üstüne ekler)
+          price: item.basePrice, // Ürünün ham fiyatını yolla
           quantity: item.quantity,
-          selectedOptions: item.selectedOptions // YENİ: Seçenekleri yolla
-        })
-      );
-      await Promise.all(promises);
+          selectedOptions: item.selectedOptions // Seçenekleri yolla
+        });
+      }
       setPendingItems([]);
       fetchData();
-    } catch (error) { alert('Siparişler gönderilemedi!'); }
+    } catch (error) {
+      alert('Siparişler gönderilemedi! Hata: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   const handleCancelItem = async (itemId) => {
@@ -421,7 +423,7 @@ const Order = () => {
         </div>
         <div className="product-grid">
           {getActiveProducts().map(prod => (
-            <button key={prod.id} className="prod-btn" onClick={() => handleStageItem(prod)}>
+            < button key={prod.id} className="prod-btn" onClick={() => handleProductClick(prod)}>
               <span className="prod-name">{prod.name}</span>
               <span className="prod-price">₺{parseFloat(prod.price).toFixed(2)}</span>
             </button>
@@ -430,176 +432,180 @@ const Order = () => {
       </div>
 
       {/* --- KASA MODALI (3 SÜTUNLU YENİ MİMARİ) --- */}
-      {showCheckout && (
-        <div className="checkout-modal-overlay">
-          <div className="checkout-modal-box">
+      {
+        showCheckout && (
+          <div className="checkout-modal-overlay">
+            <div className="checkout-modal-box">
 
-            <div className="modal-header">
-              <h2>TAHSİLAT VE İSKONTO - MASA {tableId}</h2>
-              <button className="close-icon" onClick={() => setShowCheckout(false)}>✖</button>
-            </div>
+              <div className="modal-header">
+                <h2>TAHSİLAT VE İSKONTO - MASA {tableId}</h2>
+                <button className="close-icon" onClick={() => setShowCheckout(false)}>✖</button>
+              </div>
 
-            <div className="modal-body">
+              <div className="modal-body">
 
-              {/* SÜTUN 1: ÜRÜN SEÇİMİ (Kendi İçinde Scroll) */}
-              <div className="modal-col modal-products">
-                <h3 className="modal-subtitle">ÜRÜN SEÇEREK ÖDE</h3>
-                <div className="modal-products-list">
-                  {order.OrderItems.length === 0 && <p style={{ color: '#555' }}>Ödenecek ürün kalmadı.</p>}
+                {/* SÜTUN 1: ÜRÜN SEÇİMİ (Kendi İçinde Scroll) */}
+                <div className="modal-col modal-products">
+                  <h3 className="modal-subtitle">ÜRÜN SEÇEREK ÖDE</h3>
+                  <div className="modal-products-list">
+                    {order.OrderItems.length === 0 && <p style={{ color: '#555' }}>Ödenecek ürün kalmadı.</p>}
 
-                  {/* BÜTÜN BÜYÜ BURADA: Ödenenler de listede gözükür! */}
-                  {order.OrderItems.map(item => {
-                    if (item.status === 'Ödendi') {
+                    {/* BÜTÜN BÜYÜ BURADA: Ödenenler de listede gözükür! */}
+                    {order.OrderItems.map(item => {
+                      if (item.status === 'Ödendi') {
+                        return (
+                          <div key={item.id} className="modal-item-row paid-modal-row">
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ textDecoration: 'line-through', color: '#555', fontWeight: 'bold', fontSize: '13px' }}>
+                                {item.quantity}x {item.Product?.name}
+                              </span>
+                            </div>
+                            <span className="paid-stamp-modal">ÖDENDİ</span>
+                          </div>
+                        );
+                      }
+
+                      // Ödenmemiş ürünler (+ / -)
+                      const selQty = selectedQuantities[item.id] || 0;
+                      const isSelected = selQty > 0;
                       return (
-                        <div key={item.id} className="modal-item-row paid-modal-row">
+                        <div key={item.id} className={`modal-item-row ${isSelected ? 'selected' : ''}`}>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ textDecoration: 'line-through', color: '#555', fontWeight: 'bold', fontSize: '13px' }}>
+                            <span style={{ color: isSelected ? '#00ffcc' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px' }}>
                               {item.quantity}x {item.Product?.name}
                             </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '4px' }}>Birim: ₺{parseFloat(item.price).toFixed(2)}</span>
                           </div>
-                          <span className="paid-stamp-modal">ÖDENDİ</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button className={`qty-action-btn ${selQty === 0 ? 'disabled' : 'minus'}`} onClick={() => handleQtyChange(item, -1)} disabled={selQty === 0}>-</button>
+                            <span className={`qty-display ${isSelected ? 'active' : ''}`}>{selQty}</span>
+                            <button className={`qty-action-btn ${selQty === item.quantity ? 'disabled' : 'plus'}`} onClick={() => handleQtyChange(item, 1)} disabled={selQty === item.quantity}>+</button>
+                          </div>
                         </div>
                       );
-                    }
-
-                    // Ödenmemiş ürünler (+ / -)
-                    const selQty = selectedQuantities[item.id] || 0;
-                    const isSelected = selQty > 0;
-                    return (
-                      <div key={item.id} className={`modal-item-row ${isSelected ? 'selected' : ''}`}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ color: isSelected ? '#00ffcc' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px' }}>
-                            {item.quantity}x {item.Product?.name}
-                          </span>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '4px' }}>Birim: ₺{parseFloat(item.price).toFixed(2)}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <button className={`qty-action-btn ${selQty === 0 ? 'disabled' : 'minus'}`} onClick={() => handleQtyChange(item, -1)} disabled={selQty === 0}>-</button>
-                          <span className={`qty-display ${isSelected ? 'active' : ''}`}>{selQty}</span>
-                          <button className={`qty-action-btn ${selQty === item.quantity ? 'disabled' : 'plus'}`} onClick={() => handleQtyChange(item, 1)} disabled={selQty === item.quantity}>+</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* SÜTUN 2: MATEMATİK VE ÖDEME BUTONLARI (Kendi İçinde Scroll) */}
-              <div className="modal-col modal-payment">
-
-                {/* İskonto Alanı */}
-                <div className="discount-area">
-                  <div className="discount-toggle">
-                    <button className={discountType === 'amount' ? 'active' : ''} onClick={() => setDiscountType('amount')}>₺</button>
-                    <button className={discountType === 'percent' ? 'active' : ''} onClick={() => setDiscountType('percent')}>%</button>
+                    })}
                   </div>
-                  <input
-                    type="number"
-                    placeholder="İndirim..."
-                    value={discountValue}
-                    onChange={(e) => { setDiscountValue(e.target.value); setActiveInput('discount'); }}
-                    onFocus={() => setActiveInput('discount')}
-                    className={`discount-input ${activeInput === 'discount' ? 'input-active' : ''}`}
-                  />
-                  <button className="discount-apply-btn" onClick={handleApplyDiscount}>DÜŞ</button>
                 </div>
 
-                {/* Hata Mesajı */}
-                {modalError && <div className="modal-error">{modalError}</div>}
+                {/* SÜTUN 2: MATEMATİK VE ÖDEME BUTONLARI (Kendi İçinde Scroll) */}
+                <div className="modal-col modal-payment">
 
-                {/* Hesap Özeti */}
-                <div className="summary-block">
-                  <div className="modal-summary-row">
-                    <span className="label">Adisyon Toplamı:</span><span>₺{totalAmount.toFixed(2)}</span>
-                  </div>
-                  {discountAmount > 0 && (
-                    <div className="modal-summary-row discount-row">
-                      <span className="label">Yapılan İskonto:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#ffc107', fontWeight: 'bold' }}>- ₺{discountAmount.toFixed(2)}</span>
-                        <button onClick={handleRemoveDiscount} title="İskontoyu Sıfırla" className="remove-discount-icon">✖</button>
-                      </div>
+                  {/* İskonto Alanı */}
+                  <div className="discount-area">
+                    <div className="discount-toggle">
+                      <button className={discountType === 'amount' ? 'active' : ''} onClick={() => setDiscountType('amount')}>₺</button>
+                      <button className={discountType === 'percent' ? 'active' : ''} onClick={() => setDiscountType('percent')}>%</button>
                     </div>
-                  )}
-                  <div className="modal-summary-row">
-                    <span className="label">Ödenen:</span><span style={{ color: '#00ffcc' }}>- ₺{paidAmount.toFixed(2)}</span>
+                    <input
+                      type="number"
+                      placeholder="İndirim..."
+                      value={discountValue}
+                      onChange={(e) => { setDiscountValue(e.target.value); setActiveInput('discount'); }}
+                      onFocus={() => setActiveInput('discount')}
+                      className={`discount-input ${activeInput === 'discount' ? 'input-active' : ''}`}
+                    />
+                    <button className="discount-apply-btn" onClick={handleApplyDiscount}>DÜŞ</button>
                   </div>
-                  <div className="modal-summary-row final-total">
-                    <span>KALAN:</span><span style={{ color: '#ff4444' }}>₺{remaining.toFixed(2)}</span>
+
+                  {/* Hata Mesajı */}
+                  {modalError && <div className="modal-error">{modalError}</div>}
+
+                  {/* Hesap Özeti */}
+                  <div className="summary-block">
+                    <div className="modal-summary-row">
+                      <span className="label">Adisyon Toplamı:</span><span>₺{totalAmount.toFixed(2)}</span>
+                    </div>
+                    {discountAmount > 0 && (
+                      <div className="modal-summary-row discount-row">
+                        <span className="label">Yapılan İskonto:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: '#ffc107', fontWeight: 'bold' }}>- ₺{discountAmount.toFixed(2)}</span>
+                          <button onClick={handleRemoveDiscount} title="İskontoyu Sıfırla" className="remove-discount-icon">✖</button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="modal-summary-row">
+                      <span className="label">Ödenen:</span><span style={{ color: '#00ffcc' }}>- ₺{paidAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="modal-summary-row final-total">
+                      <span>KALAN:</span><span style={{ color: '#ff4444' }}>₺{remaining.toFixed(2)}</span>
+                    </div>
                   </div>
+
+                  {/* Alınacak Tutar */}
+                  <div style={{ marginTop: 'auto' }}>
+                    <label className="pay-label">ALINACAK TUTAR (₺)</label>
+                    <input
+                      type="text"
+                      className={`pay-input ${activeInput === 'payAmount' ? 'input-active' : ''}`}
+                      value={payAmount}
+                      onChange={handleAmountChange}
+                      onFocus={() => setActiveInput('payAmount')}
+                    />
+
+                    <div className="payment-methods">
+                      <button className="card-btn" onClick={() => handlePayment('Kredi Kartı')}>💳 KART</button>
+                      <button className="cash-btn" onClick={() => handlePayment('Nakit')}>💵 NAKİT</button>
+                    </div>
+                  </div>
+
                 </div>
 
-                {/* Alınacak Tutar */}
-                <div style={{ marginTop: 'auto' }}>
-                  <label className="pay-label">ALINACAK TUTAR (₺)</label>
-                  <input
-                    type="text"
-                    className={`pay-input ${activeInput === 'payAmount' ? 'input-active' : ''}`}
-                    value={payAmount}
-                    onChange={handleAmountChange}
-                    onFocus={() => setActiveInput('payAmount')}
-                  />
-
-                  <div className="payment-methods">
-                    <button className="card-btn" onClick={() => handlePayment('Kredi Kartı')}>💳 KART</button>
-                    <button className="cash-btn" onClick={() => handlePayment('Nakit')}>💵 NAKİT</button>
+                {/* SÜTUN 3: AKILLI NUMPAD (Sabit) */}
+                <div className="modal-col modal-numpad">
+                  <div className={`numpad-wrapper ${!activeInput ? 'disabled-numpad' : ''}`}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                      <button key={num} className="numpad-btn" onClick={() => handleNumpad(num.toString())}>{num}</button>
+                    ))}
+                    <button className="numpad-btn action-btn" onClick={handleNumpadClear}>C</button>
+                    <button className="numpad-btn" onClick={() => handleNumpad('0')}>0</button>
+                    <button className="numpad-btn" onClick={() => handleNumpad('.')}>.</button>
+                    <button className="numpad-btn backspace-btn" onClick={handleNumpadBackspace}>⌫ SİL</button>
                   </div>
                 </div>
 
               </div>
-
-              {/* SÜTUN 3: AKILLI NUMPAD (Sabit) */}
-              <div className="modal-col modal-numpad">
-                <div className={`numpad-wrapper ${!activeInput ? 'disabled-numpad' : ''}`}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                    <button key={num} className="numpad-btn" onClick={() => handleNumpad(num.toString())}>{num}</button>
-                  ))}
-                  <button className="numpad-btn action-btn" onClick={handleNumpadClear}>C</button>
-                  <button className="numpad-btn" onClick={() => handleNumpad('0')}>0</button>
-                  <button className="numpad-btn" onClick={() => handleNumpad('.')}>.</button>
-                  <button className="numpad-btn backspace-btn" onClick={handleNumpadBackspace}>⌫ SİL</button>
-                </div>
-              </div>
-
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
       {/* SEÇENEKLER POP-UP EKRANI */}
-      {showModal && selectedProductForModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{selectedProductForModal.name}</h3>
-              <p>Ekstra özellik veya porsiyon seçin</p>
-            </div>
+      {
+        showModal && selectedProductForModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>{selectedProductForModal.name}</h3>
+                <p>Ekstra özellik veya porsiyon seçin</p>
+              </div>
 
-            <div className="options-grid">
-              {selectedProductForModal.ProductOptions.map(opt => {
-                const isSelected = activeOptions.some(o => o.id === opt.id);
-                return (
-                  <button
-                    key={opt.id}
-                    className={`option-btn ${isSelected ? 'selected' : ''}`}
-                    onClick={() => toggleOption(opt)}
-                  >
-                    <span>{opt.name}</span>
-                    <span className="option-price">
-                      {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+              <div className="options-grid">
+                {selectedProductForModal.ProductOptions.map(opt => {
+                  const isSelected = activeOptions.some(o => o.id === opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      className={`option-btn ${isSelected ? 'selected' : ''}`}
+                      onClick={() => toggleOption(opt)}
+                    >
+                      <span>{opt.name}</span>
+                      <span className="option-price">
+                        {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="modal-actions">
-              <button className="cancel-btn" onClick={() => setShowModal(false)}>İptal</button>
-              <button className="confirm-btn" onClick={confirmOptionsAndAdd}>Siparişe Ekle</button>
+              <div className="modal-actions">
+                <button className="cancel-btn" onClick={() => setShowModal(false)}>İptal</button>
+                <button className="confirm-btn" onClick={confirmOptionsAndAdd}>Siparişe Ekle</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

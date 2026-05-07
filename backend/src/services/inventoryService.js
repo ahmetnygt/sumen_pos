@@ -23,7 +23,6 @@ exports.deleteIngredient = async (id) => {
 };
 
 // --- REÇETE (FORMÜL) YÖNETİMİ ---
-
 exports.getRecipeByProduct = async (productId) => {
     const recipes = await Recipe.findAll({
         where: { product_id: productId },
@@ -32,10 +31,10 @@ exports.getRecipeByProduct = async (productId) => {
             { model: ProductOption, attributes: ['id', 'name'] }
         ]
     });
-
-    // Frontend'in kolay okuyabilmesi için veriyi jilet gibi düzeltiyoruz
+    
+    // Frontend için jilet gibi listeye çeviriyoruz
     return recipes.map(r => ({
-        recipe_id: r.id, // BÜYÜ BURADA: Silme işlemi için artık bu eşsiz ID'yi kullanacağız!
+        recipe_id: r.id, 
         ingredient_id: r.Ingredient?.id,
         name: r.Ingredient?.name,
         unit: r.Ingredient?.unit,
@@ -46,19 +45,19 @@ exports.getRecipeByProduct = async (productId) => {
 };
 
 exports.addIngredientToRecipe = async (data) => {
-    // Undefined veya boş string gelirse zorla null yap (400 hatasının kesin çözümü)
+    // Opsiyon yoksa undefined yerine zorla null yapıyoruz ki SQL patlamasın
     const optionId = data.option_id ? parseInt(data.option_id) : null;
 
     const existing = await Recipe.findOne({
-        where: {
-            product_id: data.product_id,
+        where: { 
+            product_id: data.product_id, 
             ingredient_id: data.ingredient_id,
             option_id: optionId
         }
     });
-
-    if (existing) throw new Error('Bu hammadde bu reçeteye zaten eklenmiş!');
-
+    
+    if (existing) throw new Error('Bu hammadde bu seçenekte zaten var!');
+    
     return await Recipe.create({
         product_id: data.product_id,
         ingredient_id: data.ingredient_id,
@@ -68,6 +67,5 @@ exports.addIngredientToRecipe = async (data) => {
 };
 
 exports.removeIngredientFromRecipe = async (recipeId) => {
-    // Artık ürün+hammadde'ye göre değil, doğrudan o satırın Eşsiz ID'sine göre siliyoruz
     return await Recipe.destroy({ where: { id: recipeId } });
 };

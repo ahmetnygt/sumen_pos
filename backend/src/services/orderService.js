@@ -43,17 +43,17 @@ exports.addItemToOrder = async (tableId, userId, productId, basePrice, quantity 
         }
 
         if (sameItem) {
-            // Aynı seçenekli ürün masada varsa, adisyonu uzatma, sadece miktarını arttır (x2 yap)
             await sameItem.increment('quantity', { by: quantity, transaction: t });
         } else {
-            // Seçenekler farklıysa veya ürün ilk defa ekleniyorsa, masaya YENİ SATIR aç!
+            // Seçenekler farklıysa masaya YENİ SATIR aç!
             await OrderItem.create({
                 order_id: order.id,
                 product_id: productId,
-                price: finalUnitPrice, // Fiyat artık baz fiyat + ekstralar oldu
+                price: finalUnitPrice,
                 quantity: quantity,
                 status: 'Siparişte',
-                selected_options: selectedOptions // Seçenekleri JSON olarak fişe kaydet
+                // BÜYÜ BURADA: Array'i güvenli JSON String formatına çevirerek veritabanı çökmesini engelliyoruz!
+                selected_options: selectedOptions && selectedOptions.length > 0 ? JSON.stringify(selectedOptions) : null
             }, { transaction: t });
         }
 
