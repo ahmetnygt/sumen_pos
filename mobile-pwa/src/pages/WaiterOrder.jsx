@@ -145,25 +145,47 @@ const WaiterOrder = () => {
 
     // Menüden bir ürüne tıklandığında çalışır
     const handleProductClick = (product) => {
-        // Eğer ürünün seçenekleri varsa Pop-up'ı aç
-        if (product.ProductOptions && product.ProductOptions.length > 0) {
+        // BÜYÜ BURADA: Artık ProductOptionGroups dizisine bakıyoruz
+        if (product.ProductOptionGroups && product.ProductOptionGroups.length > 0) {
             setSelectedProductForModal(product);
             setActiveOptions([]); // Önceki seçimleri temizle
             setShowModal(true);
         } else {
-            // Seçeneği yoksa (Örn: Çay, Su), mermi gibi direkt ekle!
+            // Hiçbir grubu yoksa mermi gibi direkt sepete at!
             handleStageItem(product, []);
         }
     };
 
-    // Pop-up içindeki seçeneklere tıklama
-    const toggleOption = (opt) => {
-        const exists = activeOptions.find(o => o.id === opt.id);
-        if (exists) {
-            setActiveOptions(activeOptions.filter(o => o.id !== opt.id)); // Zaten seçiliyse çıkar
+    // YENİ: Akıllı Seçenek İşaretleme Motoru (Zorunlu vs Ekstra)
+    const handleOptionSelect = (group, opt) => {
+        if (group.type === 'secim') {
+            // Zorunlu (Radio) mantığı: Aynı gruptan başka seçili varsa onu sil, yenisini ekle
+            const groupOptionIds = group.ProductOptions.map(o => o.id);
+            const filtered = activeOptions.filter(o => !groupOptionIds.includes(o.id));
+            setActiveOptions([...filtered, opt]);
         } else {
-            setActiveOptions([...activeOptions, opt]); // Seçili değilse ekle
+            // Ekstra (Checkbox) mantığı: Varsa çıkar, yoksa ekle
+            const exists = activeOptions.find(o => o.id === opt.id);
+            if (exists) {
+                setActiveOptions(activeOptions.filter(o => o.id !== opt.id));
+            } else {
+                setActiveOptions([...activeOptions, opt]);
+            }
         }
+    };
+
+    // YENİ: Siparişe Ekleme Kilidi (Tüm zorunlu seçimler yapıldı mı?)
+    const isSelectionValid = () => {
+        if (!selectedProductForModal) return false;
+        // Sadece "secim" (Zorunlu) olan grupları bul
+        const mandatoryGroups = selectedProductForModal.ProductOptionGroups.filter(g => g.type === 'secim');
+
+        // Her zorunlu gruptan en az 1 tane seçilmiş mi kontrol et
+        for (const group of mandatoryGroups) {
+            const hasSelection = group.ProductOptions.some(opt => activeOptions.some(a => a.id === opt.id));
+            if (!hasSelection) return false; // Zorunlu bir gruptan seçim yapılmamış! (Butonu kilitle)
+        }
+        return true; // Her şey tamamsa kilidi aç
     };
 
     // Pop-up'ta "Sepete Ekle" butonuna basınca
@@ -347,37 +369,73 @@ const WaiterOrder = () => {
                 </div>
             </div>
 
-            {/* SEÇENEKLER POP-UP EKRANI */}
+            {/* YENİ NESİL GRUPLU SEÇENEKLER POP-UP EKRANI */}
             {showModal && selectedProductForModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
+                    <div className="modal-content" style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+
                         <div className="modal-header">
                             <h3>{selectedProductForModal.name}</h3>
-                            <p>Ekstra özellik veya porsiyon seçin</p>
+                            <p>Lütfen tercihlerinizi belirleyin</p>
                         </div>
 
-                        <div className="options-grid">
-                            {selectedProductForModal.ProductOptions.map(opt => {
-                                const isSelected = activeOptions.some(o => o.id === opt.id);
-                                return (
-                                    <button
-                                        key={opt.id}
-                                        className={`option-btn ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => toggleOption(opt)}
-                                    >
-                                        <span>{opt.name}</span>
-                                        <span className="option-price">
-                                            {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                        <div className="options-groups-container" style={{ overflowY: 'auto', padding: '10px 0', flex: 1 }}>
+                            {selectedProductForModal.ProductOptionGroups.map(group => (
+                                <div key={group.id} className="option-group-section" style={{ marginBottom: '20px', background: '#111', padding: '15px', borderRadius: '10px', border: '1px solid #333' }}>
+
+                                    {/* Grup Başlığı (Zorunlu ise Kırmızı, Ekstra ise Mavi) */}
+                                    <h4 style={{ color: group.type === 'secim' ? '#ff4444' : '#00ffcc', margin: '0 0 15px 0', fontSize: '14px', borderBottom: '1px solid #222', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>{group.name.toUpperCase()}</span>
+                                        <span style={{ fontSize: '11px', opacity: 0.8 }}>{group.type === 'secim' ? 'ZORUNLU (1 Seçim)' : 'İSTEĞE BAĞLI'}</span>
+                                    </h4>
+
+                                    <div className="options-grid">
+                                        {group.ProductOptions.map(opt => {
+                                            const isSelected = activeOptions.some(o => o.id === opt.id);
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    className={`option-btn ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => handleOptionSelect(group, opt)}
+                                                    style={{
+                                                        borderColor: isSelected ? (group.type === 'secim' ? '#ff4444' : '#00ffcc') : '#333',
+                                                        background: isSelected ? (group.type === 'secim' ? 'rgba(255, 68, 68, 0.1)' : 'rgba(0, 255, 204, 0.1)') : '#1a1a1a',
+                                                        color: isSelected ? '#fff' : '#aaa',
+                                                        transition: '0.2s'
+                                                    }}
+                                                >
+                                                    <span>{opt.name}</span>
+                                                    <span className="option-price">
+                                                        {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                </div>
+                            ))}
                         </div>
 
-                        <div className="modal-actions">
+                        <div className="modal-actions" style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #333' }}>
                             <button className="cancel-btn" onClick={() => setShowModal(false)}>İptal</button>
-                            <button className="confirm-btn" onClick={confirmOptionsAndAdd}>Siparişe Ekle</button>
+
+                            {/* BÜYÜ BURADA: Seçimler geçerli değilse buton silik (disabled) olur! */}
+                            <button
+                                className="confirm-btn"
+                                onClick={confirmOptionsAndAdd}
+                                disabled={!isSelectionValid()}
+                                style={{
+                                    opacity: isSelectionValid() ? 1 : 0.4,
+                                    cursor: isSelectionValid() ? 'pointer' : 'not-allowed',
+                                    background: isSelectionValid() ? '#d4af37' : '#555',
+                                    color: isSelectionValid() ? '#000' : '#888'
+                                }}
+                            >
+                                {isSelectionValid() ? 'Siparişe Ekle' : 'Seçimleri Tamamlayın'}
+                            </button>
                         </div>
+
                     </div>
                 </div>
             )}

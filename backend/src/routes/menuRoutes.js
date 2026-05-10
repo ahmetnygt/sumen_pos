@@ -17,4 +17,16 @@ router.delete('/product/:id', verifyToken, authorizeRoles('Admin'), menuControll
 router.post('/product/:productId/option', verifyToken, authorizeRoles('Admin'), menuController.addProductOption);
 router.delete('/option/:optionId', verifyToken, authorizeRoles('Admin'), menuController.deleteProductOption);
 
+// 1. Ürüne yeni Grup Ekleme (Örn: Boyut Seçimi)
+router.post('/product/:productId/group', menuController.addProductGroup);
+
+// 2. Grubu tamamen silme
+router.delete('/group/:groupId', menuController.deleteProductGroup);
+
+// 3. Grubun içine Seçenek Ekleme (Örn: Küçük Boy)
+router.post('/group/:groupId/option', menuController.addOptionToGroup);
+
+// 4. Sadece tek bir seçeneği silme
+router.delete('/option/:optionId', menuController.deleteProductOption);
+
 module.exports = router;

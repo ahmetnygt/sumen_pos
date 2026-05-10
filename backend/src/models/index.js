@@ -6,6 +6,7 @@ const Table = require('./Table');
 const Category = require('./Category');
 const Product = require('./Product');
 const ProductOption = require('./ProductOption');
+const ProductOptionGroup = require('./ProductOptionGroup');
 const Ingredient = require('./Ingredient');
 const Recipe = require('./Recipe');
 const Order = require('./Order');
@@ -48,6 +49,12 @@ Ingredient.hasMany(Recipe, { foreignKey: 'ingredient_id' });
 Recipe.belongsTo(Product, { foreignKey: 'product_id' });
 Product.hasMany(Recipe, { foreignKey: 'product_id' });
 
+Product.hasMany(ProductOptionGroup, { foreignKey: 'product_id', onDelete: 'CASCADE' });
+ProductOptionGroup.belongsTo(Product, { foreignKey: 'product_id' });
+
+ProductOptionGroup.hasMany(ProductOption, { foreignKey: 'option_group_id', onDelete: 'CASCADE' });
+ProductOption.belongsTo(ProductOptionGroup, { foreignKey: 'option_group_id' });
+
 
 // Tüm modelleri dışarı aktar
 module.exports = {
@@ -57,6 +64,7 @@ module.exports = {
     Category,
     Product,
     ProductOption,
+    ProductOptionGroup,
     Ingredient,
     Recipe,
     Order,

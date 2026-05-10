@@ -1,5 +1,5 @@
 const menuService = require('../services/menuService');
-const { ProductOption } = require('../models');
+const { ProductOption,ProductOptionGroup } = require('../models');
 
 exports.getMenu = async (req, res) => {
     try {
@@ -56,24 +56,63 @@ exports.deleteProduct = async (req, res) => {
     }
 };
 
-// Ürüne yeni seçenek (Duble, Enerji vs) ekleme
-exports.addProductOption = async (req, res) => {
+// Gruba yeni seçenek ekleme (UX odaklı yeni ucumuz)
+exports.addOptionToGroup = async (req, res) => {
     try {
-        const { productId } = req.params;
+        const { groupId } = req.params;
         const { name, price_diff } = req.body;
-        const option = await ProductOption.create({ product_id: productId, name, price_diff });
+        const option = await ProductOption.create({ option_group_id: groupId, name, price_diff });
         res.status(201).json(option);
+    } catch (error) { res.status(400).json({ message: 'Seçenek eklenemedi.' }); }
+};
+
+// Grubu Komple Silme
+exports.deleteProductGroup = async (req, res) => {
+    try {
+        const { ProductOptionGroup } = require('../models');
+        await ProductOptionGroup.destroy({ where: { id: req.params.groupId } });
+        res.status(200).json({ message: 'Grup ve içindeki seçenekler silindi.' });
     } catch (error) {
-        res.status(400).json({ message: 'Opsiyon eklenemedi.', error: error.message });
+        res.status(400).json({ message: 'Grup silinemedi.' });
     }
 };
 
-// Seçenek silme
+// Sadece tek bir seçeneği silme (Eskisini buna güncelleyelim garanti olsun)
 exports.deleteProductOption = async (req, res) => {
     try {
+        const { ProductOption } = require('../models');
         await ProductOption.destroy({ where: { id: req.params.optionId } });
         res.status(200).json({ message: 'Opsiyon silindi.' });
     } catch (error) {
         res.status(400).json({ message: 'Opsiyon silinemedi.' });
+    }
+};
+
+// Ürüne grup ekleme
+exports.addProductGroup = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const { name, type } = req.body;
+        const group = await ProductOptionGroup.create({ product_id: productId, name, type });
+        res.status(201).json(group);
+    } catch (error) { res.status(400).json({ message: 'Grup oluşturulamadı.' }); }
+};
+
+// Ürüne yeni seçenek (Duble, Enerji vs) ekleme
+exports.addProductOption = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        // option_type'ı frontend'den alıyoruz
+        const { name, price_diff, option_type } = req.body;
+
+        const option = await ProductOption.create({
+            product_id: productId,
+            name,
+            price_diff,
+            option_type: option_type || 'ekstra' // Varsayılan ekstra olsun
+        });
+        res.status(201).json(option);
+    } catch (error) {
+        res.status(400).json({ message: 'Opsiyon eklenemedi.', error: error.message });
     }
 };

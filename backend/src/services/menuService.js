@@ -1,4 +1,4 @@
-const { Category, Product, ProductOption } = require('../models');
+const { Category, Product, ProductOption,ProductOptionGroup } = require('../models');
 
 // Tüm kategorileri ve içindeki aktif ürünleri getirir
 exports.getFullMenu = async () => {
@@ -6,11 +6,15 @@ exports.getFullMenu = async () => {
         include: [{
             model: Product,
             where: { is_active: true },
-            required: false, // İçi boş kategoriler de gelsin
+            required: false,
             include: [
                 {
-                    model: ProductOption, // BÜYÜ BURADA: Artık ürünlerin seçenekleri de tablete gidiyor
-                    required: false
+                    model: ProductOptionGroup, // Artık seçenekleri değil, grupları çekiyoruz
+                    required: false,
+                    include: [{ 
+                        model: ProductOption, // Grupların içindeki seçenekleri de içine gömüyoruz
+                        required: false 
+                    }]
                 }
             ]
         }],

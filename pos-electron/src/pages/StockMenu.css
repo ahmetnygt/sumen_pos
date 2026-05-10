@@ -178,7 +178,7 @@
 .recipe-layout {
     display: flex;
     gap: 30px;
-    height: 100%;
+    min-height: 100%;
 }
 
 .categories-side,
@@ -190,6 +190,8 @@
     padding: 25px;
     display: flex;
     flex-direction: column;
+    min-height: 100%;
+    height: fit-content;
 }
 
 .products-side,
@@ -199,6 +201,8 @@
     border: 1px solid #222;
     border-radius: 12px;
     padding: 25px;
+    min-height: 100%;
+    height: auto;
 }
 
 .categories-side h3,

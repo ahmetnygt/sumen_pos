@@ -39,6 +39,17 @@ const StockMenu = () => {
             });
             setProducts(allProducts);
 
+            // BÜYÜ BURADA: Açık olan Pop-up'ları ve Reçete ekranını Mermi gibi tazeler!
+            setFormData(prev => {
+                if (!prev || !prev.id) return prev;
+                return allProducts.find(p => p.id === prev.id) || prev;
+            });
+
+            setSelectedProduct(prev => {
+                if (!prev || !prev.id) return prev;
+                return allProducts.find(p => p.id === prev.id) || prev;
+            });
+
         } catch (error) { console.error('Veri çekme hatası:', error); }
     };
 
@@ -182,77 +193,82 @@ const StockMenu = () => {
                         </div>
                         <div className="recipe-details">
                             {selectedProduct ? (
-                                <div className="recipes-container">
+                                <div className="recipes-container" style={{ padding: '10px' }}>
+
                                     {/* --- 1. ANA REÇETE KISMI --- */}
-                                    <div className="recipe-section">
-                                        <div className="recipe-header-row">
-                                            <h3 style={{ color: 'var(--primary-color)' }}>{selectedProduct.name} (Ana Reçete)</h3>
+                                    <div className="recipe-section" style={{ background: '#111', padding: '20px', borderRadius: '12px', border: '1px solid var(--primary-color)', marginBottom: '30px' }}>
+                                        <div className="recipe-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                            <h3 style={{ color: 'var(--primary-color)', margin: 0 }}>🌟 {selectedProduct.name} (Ana Reçete)</h3>
                                             <button className="add-btn-small" onClick={() => {
                                                 setFormData({ product_id: selectedProduct.id, option_id: null });
                                                 setShowModal('recipe');
                                             }}>+ Ana Reçeteye Ekle</button>
                                         </div>
-                                        <table className="luxury-table">
-                                            <thead><tr><th>Hammadde</th><th>Miktar</th><th>Birim</th><th>İşlem</th></tr></thead>
-                                            <tbody>
-                                                {currentRecipe.filter(r => r.option_id === null).length > 0 ? (
-                                                    currentRecipe.filter(r => r.option_id === null).map(ing => (
-                                                        <tr key={ing.recipe_id}>
-                                                            <td>{ing.name}</td>
-                                                            <td>{ing.amount_used}</td>
-                                                            <td>{ing.unit}</td>
-                                                            <td>
-                                                                <button className="delete-icon" onClick={async () => {
-                                                                    await api.delete(`/inventory/recipes/${ing.recipe_id}`);
-                                                                    handleRecipeSelect(selectedProduct);
-                                                                }}>✕</button>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Ana reçete boş.</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
+
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                                            {currentRecipe.filter(r => r.option_id === null).length > 0 ? (
+                                                currentRecipe.filter(r => r.option_id === null).map(ing => (
+                                                    <div key={ing.recipe_id} style={{ background: 'rgba(212, 175, 55, 0.1)', border: '1px solid #d4af37', padding: '8px 12px', borderRadius: '20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ color: '#fff' }}>{ing.name}</span>
+                                                        <span style={{ color: '#d4af37', fontWeight: 'bold' }}>{ing.amount_used}{ing.unit}</span>
+                                                        <button style={{ background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer', fontSize: '14px', marginLeft: '5px' }} onClick={async () => {
+                                                            await api.delete(`/inventory/recipes/${ing.recipe_id}`);
+                                                            handleRecipeSelect(selectedProduct);
+                                                        }}>✕</button>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div style={{ color: '#666', fontStyle: 'italic', fontSize: '13px' }}>Ana reçete henüz oluşturulmadı.</div>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    {/* --- 2. SEÇENEKLERİN (OPSİYON) REÇETELERİ --- */}
-                                    {selectedProduct.ProductOptions?.map(opt => {
-                                        const optRecipes = currentRecipe.filter(r => r.option_id === opt.id);
-                                        return (
-                                            <div key={opt.id} className="recipe-section" style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '15px' }}>
-                                                <div className="recipe-header-row">
-                                                    <h4 style={{ color: '#00ffcc', margin: 0 }}>Seçenek: {opt.name} <span style={{ fontSize: '12px', color: '#aaa' }}>(+₺{opt.price_diff})</span></h4>
-                                                    <button className="add-btn-small" onClick={() => {
-                                                        setFormData({ product_id: selectedProduct.id, option_id: opt.id });
-                                                        setShowModal('recipe');
-                                                    }}>+ Bu Seçeneğe Ekle</button>
+                                    {/* --- 2. SEÇENEKLERİN REÇETELERİ (GRID & CHIP TASARIMI) --- */}
+                                    {selectedProduct.ProductOptionGroups?.length > 0 && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                                            {selectedProduct.ProductOptionGroups.map(group => (
+                                                <div key={group.id} className="recipe-group-card" style={{ background: '#111', padding: '15px', borderRadius: '12px', border: '1px solid #333' }}>
+                                                    <h3 style={{ color: group.type === 'secim' ? '#ff4444' : '#00ffcc', margin: '0 0 15px 0', fontSize: '15px', borderBottom: '1px solid #222', paddingBottom: '10px' }}>
+                                                        {group.type === 'secim' ? '🔘' : '☑️'} {group.name.toUpperCase()} GRUBU
+                                                    </h3>
+
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        {group.ProductOptions?.length > 0 ? group.ProductOptions.map(opt => {
+                                                            const optRecipes = currentRecipe.filter(r => r.option_id === opt.id);
+                                                            return (
+                                                                <div key={opt.id} style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '8px', padding: '12px' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                                        <h4 style={{ color: '#fff', margin: 0, fontSize: '14px' }}>{opt.name} <span style={{ color: '#666', fontSize: '11px' }}>(+₺{opt.price_diff})</span></h4>
+                                                                        <button className="add-btn-small" style={{ fontSize: '10px', padding: '5px 10px', background: '#222', color: '#fff', border: '1px solid #444' }} onClick={() => {
+                                                                            setFormData({ product_id: selectedProduct.id, option_id: opt.id });
+                                                                            setShowModal('recipe');
+                                                                        }}>+ Ekle</button>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                                        {optRecipes.length > 0 ? (
+                                                                            optRecipes.map(ing => (
+                                                                                <div key={ing.recipe_id} style={{ background: '#222', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                    <span style={{ color: '#ccc' }}>{ing.name}:</span>
+                                                                                    <span style={{ color: '#00ffcc', fontWeight: 'bold' }}>+{ing.amount_used}{ing.unit}</span>
+                                                                                    <button style={{ background: 'none', border: 'none', color: '#e63946', cursor: 'pointer', marginLeft: '4px' }} onClick={async () => {
+                                                                                        await api.delete(`/inventory/recipes/${ing.recipe_id}`);
+                                                                                        handleRecipeSelect(selectedProduct);
+                                                                                    }}>✕</button>
+                                                                                </div>
+                                                                            ))
+                                                                        ) : (
+                                                                            <div style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>Bu seçeneğe ekstra reçete atanmamış.</div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }) : <div style={{ color: '#555', fontSize: '12px' }}>Bu grupta seçenek yok.</div>}
+                                                    </div>
                                                 </div>
-                                                <table className="luxury-table">
-                                                    <thead><tr><th>Hammadde</th><th>Ekstra Miktar</th><th>Birim</th><th>İşlem</th></tr></thead>
-                                                    <tbody>
-                                                        {optRecipes.length > 0 ? (
-                                                            optRecipes.map(ing => (
-                                                                <tr key={ing.recipe_id}>
-                                                                    <td>{ing.name}</td>
-                                                                    <td><span style={{ color: '#d4af37' }}>+{ing.amount_used}</span></td>
-                                                                    <td>{ing.unit}</td>
-                                                                    <td>
-                                                                        <button className="delete-icon" onClick={async () => {
-                                                                            await api.delete(`/inventory/recipes/${ing.recipe_id}`);
-                                                                            handleRecipeSelect(selectedProduct);
-                                                                        }}>✕</button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))
-                                                        ) : (
-                                                            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '15px', color: '#555', fontStyle: 'italic' }}>Bu seçeneğe ekstra reçete atanmamış.</td></tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        );
-                                    })}
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ) : <div className="empty-state">Düzenlemek için ürün seçin.</div>}
                         </div>
@@ -304,7 +320,12 @@ const StockMenu = () => {
                                 <h3>{selectedProduct.name} Reçetesi</h3>
                                 <p style={{ color: '#aaa', marginBottom: '15px' }}>
                                     Hedef: {formData.option_id
-                                        ? <span style={{ color: '#00ffcc' }}>Seçenek ({selectedProduct.ProductOptions.find(o => o.id === formData.option_id)?.name})</span>
+                                        ? <span style={{ color: '#00ffcc' }}>
+                                            Seçenek ({
+                                                // BÜYÜ BURADA: Grupların içindeki seçenekleri birleştirip ismini buluyoruz
+                                                selectedProduct.ProductOptionGroups?.flatMap(g => g.ProductOptions || []).find(o => o.id === formData.option_id)?.name || 'Bilinmeyen'
+                                            })
+                                        </span>
                                         : <span style={{ color: 'var(--primary-color)' }}>Ana Reçete</span>}
                                 </p>
 
@@ -320,31 +341,91 @@ const StockMenu = () => {
 
                         {showModal === 'manage_options' && (
                             <div className="modal-overlay">
-                                <div className="modal-box luxury-modal">
+                                <div className="modal-box luxury-modal" style={{ maxWidth: '700px', width: '90%' }}>
                                     <button className="close-modal" onClick={() => setShowModal(null)}>✕</button>
-                                    <h3>{formData.name} - Seçenek Yönetimi</h3>
+                                    <h2 style={{ color: 'var(--primary-color)', marginBottom: '20px' }}>{formData.name} - Seçenek Yapılandırıcı</h2>
 
-                                    {/* Yeni Seçenek Ekleme Formu */}
-                                    <div className="add-option-inline">
-                                        <input type="text" placeholder="Örn: Duble" id="new_opt_name" />
-                                        <input type="number" placeholder="+ Fiyat" id="new_opt_price" />
-                                        <button onClick={async () => {
-                                            const name = document.getElementById('new_opt_name').value;
-                                            const price = document.getElementById('new_opt_price').value;
-                                            await api.post(`/menu/product/${formData.id}/option`, { name, price_diff: price });
-                                            fetchData(); // Listeyi yenile
-                                        }}>Ekle</button>
+                                    {/* YENİ GRUP EKLEME (Kullanıcı Dostu Giriş) */}
+                                    <div className="group-add-section" style={{ background: '#111', padding: '15px', borderRadius: '8px', border: '1px solid #333', marginBottom: '20px' }}>
+                                        <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#888' }}>+ Yeni Seçenek Grubu Oluştur (Örn: Boyut Seçimi, Soslar)</h4>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <input type="text" placeholder="Grup Adı..." id="new_group_name" style={{ flex: 1 }} />
+                                            <select id="new_group_type" style={{ width: '150px' }}>
+                                                <option value="secim">🔘 Tekli Seçim</option>
+                                                <option value="ekstra">☑️ Çoklu Ekstra</option>
+                                            </select>
+                                            <button className="add-btn-small" onClick={async () => {
+                                                const nameInput = document.getElementById('new_group_name');
+                                                const typeInput = document.getElementById('new_group_type');
+
+                                                if (!nameInput || !nameInput.value) return alert('Lütfen bir grup adı girin!');
+
+                                                await api.post(`/menu/product/${formData.id}/group`, { name: nameInput.value, type: typeInput.value });
+                                                nameInput.value = '';
+                                                fetchData(); // Ekranı anında günceller
+                                            }}>Grup Aç</button>
+                                        </div>
                                     </div>
 
-                                    {/* Mevcut Seçenekler Listesi */}
-                                    <div className="options-list-admin">
-                                        {formData.ProductOptions?.map(opt => (
-                                            <div key={opt.id} className="admin-opt-item">
-                                                <span>{opt.name} (+₺{opt.price_diff})</span>
-                                                <button className="del-btn-small" onClick={async () => {
-                                                    await api.delete(`/menu/option/${opt.id}`);
-                                                    fetchData();
-                                                }}>✕</button>
+                                    {/* MEVCUT GRUPLAR VE SEÇENEKLER LİSTESİ */}
+                                    <div className="groups-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                        {formData.ProductOptionGroups?.length === 0 && <p style={{ textAlign: 'center', color: '#444' }}>Henüz seçenek grubu eklenmemiş.</p>}
+
+                                        {formData.ProductOptionGroups?.map(group => (
+                                            <div key={group.id} className="admin-group-card" style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', marginBottom: '15px', overflow: 'hidden' }}>
+                                                {/* Grup Başlığı */}
+                                                <div style={{ background: '#222', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333' }}>
+                                                    <span style={{ fontWeight: '800', color: group.type === 'secim' ? '#ff4444' : '#00ffcc' }}>
+                                                        {group.type === 'secim' ? '🔘' : '☑️'} {group.name?.toUpperCase()}
+                                                    </span>
+                                                    <button className="del-btn-small" onClick={async () => {
+                                                        if (window.confirm('Tüm grubu silmek istediğine emin misin?')) {
+                                                            await api.delete(`/menu/group/${group.id}`);
+                                                            fetchData();
+                                                        }
+                                                    }}>✕</button>
+                                                </div>
+
+                                                {/* Seçenek Listesi */}
+                                                <div style={{ padding: '10px' }}>
+                                                    <div className="opt-items-list">
+                                                        {group.ProductOptions?.map(opt => (
+                                                            <div key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #222', fontSize: '13px' }}>
+                                                                <span>{opt.name} <strong style={{ color: 'var(--primary-color)' }}>(+₺{opt.price_diff})</strong></span>
+                                                                <button className="del-btn-small" onClick={async () => {
+                                                                    await api.delete(`/menu/option/${opt.id}`);
+                                                                    fetchData();
+                                                                }}>✕</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* SEÇENEK EKLEME BUTONU (Grup İçinde) */}
+                                                    <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                                                        <input type="text" placeholder="Seçenek (Örn: Orta Boy)" id={`opt_name_${group.id}`} style={{ flex: 1, padding: '5px', fontSize: '12px' }} />
+                                                        <input type="number" placeholder="+ Fiyat" id={`opt_price_${group.id}`} style={{ width: '70px', padding: '5px', fontSize: '12px' }} />
+                                                        <button className="add-btn-small" style={{ fontSize: '11px' }} onClick={async () => {
+                                                            // BÜYÜ BURADA: Korumalı Element Çağrısı
+                                                            const nameInput = document.getElementById(`opt_name_${group.id}`);
+                                                            const priceInput = document.getElementById(`opt_price_${group.id}`);
+
+                                                            if (!nameInput || !nameInput.value) {
+                                                                alert("Lütfen seçenek adı girin!");
+                                                                return;
+                                                            }
+
+                                                            await api.post(`/menu/group/${group.id}/option`, {
+                                                                name: nameInput.value,
+                                                                price_diff: priceInput ? (priceInput.value || 0) : 0
+                                                            });
+
+                                                            // Başarılı olursa içlerini temizle
+                                                            if (nameInput) nameInput.value = '';
+                                                            if (priceInput) priceInput.value = '';
+                                                            fetchData();
+                                                        }}>Ekle</button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -353,8 +434,9 @@ const StockMenu = () => {
                         )}
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 
