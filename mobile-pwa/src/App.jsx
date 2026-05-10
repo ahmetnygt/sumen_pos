@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import WaiterDashboard from './pages/WaiterDashboard';
 import WaiterOrder from './pages/WaiterOrder';
+import KitchenDashboard from './pages/KitchenDashboard';
 
 function App() {
   return (
@@ -18,6 +19,8 @@ function App() {
 
         {/* Masaya tıklayınca Sipariş ekranına gider */}
         <Route path="/waiter-order/:tableId" element={<WaiterOrder />} />
+
+        <Route path="/kitchen" element={<KitchenDashboard />} />
       </Routes>
     </Router>
   );

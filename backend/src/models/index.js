@@ -55,6 +55,9 @@ ProductOptionGroup.belongsTo(Product, { foreignKey: 'product_id' });
 ProductOptionGroup.hasMany(ProductOption, { foreignKey: 'option_group_id', onDelete: 'CASCADE' });
 ProductOption.belongsTo(ProductOptionGroup, { foreignKey: 'option_group_id' });
 
+// Sipariş Kalemi <-> Personel İlişkisi (Siparişi hangi garson girdi?)
+User.hasMany(OrderItem, { foreignKey: 'user_id' });
+OrderItem.belongsTo(User, { foreignKey: 'user_id' });
 
 // Tüm modelleri dışarı aktar
 module.exports = {

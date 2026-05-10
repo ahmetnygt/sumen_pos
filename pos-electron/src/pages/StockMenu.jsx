@@ -311,6 +311,47 @@ const StockMenu = () => {
                                     <option value="">Kategori Seçin...</option>
                                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                                 </select>
+                                
+                                <textarea 
+                                    placeholder="Tarif / Yapılış Açıklaması (Opsiyonel - Sadece Mutfağa Gider)" 
+                                    value={formData.instructions || ''} 
+                                    onChange={e => setFormData({ ...formData, instructions: e.target.value })} 
+                                    rows="3" 
+                                    style={{width: '100%', padding: '10px', background: '#111', color: '#fff', border: '1px solid #333', borderRadius: '6px', marginBottom: '10px'}}
+                                />
+
+                                <button type="submit">Kaydet</button>
+                            </form>
+                        )}{showModal === 'product' && (
+                            <form onSubmit={(e) => handleFormSubmit(e, '/menu/product')}>
+                                <h3>{formData.id ? 'Düzenle' : 'Yeni Ürün'}</h3>
+                                <input type="text" placeholder="Ürün Adı" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="number" step="0.01" placeholder="Fiyat" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                                <select value={formData.category_id || ''} onChange={e => setFormData({ ...formData, category_id: e.target.value })} required>
+                                    <option value="">Kategori Seçin...</option>
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                </select>
+                                <button type="submit">Kaydet</button>
+                            </form>
+                        )}{showModal === 'product' && (
+                            <form onSubmit={(e) => handleFormSubmit(e, '/menu/product')}>
+                                <h3>{formData.id ? 'Düzenle' : 'Yeni Ürün'}</h3>
+                                <input type="text" placeholder="Ürün Adı" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="number" step="0.01" placeholder="Fiyat" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                                <select value={formData.category_id || ''} onChange={e => setFormData({ ...formData, category_id: e.target.value })} required>
+                                    <option value="">Kategori Seçin...</option>
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                </select>
+                                
+                                {/* BÜYÜ BURADA: Mutfak için Tarif / Yapılış Alanı */}
+                                <textarea 
+                                    placeholder="Tarif / Yapılış Açıklaması (Opsiyonel - Sadece Mutfağa Gider)" 
+                                    value={formData.instructions || ''} 
+                                    onChange={e => setFormData({ ...formData, instructions: e.target.value })} 
+                                    rows="3" 
+                                    style={{width: '100%', padding: '10px', background: '#111', color: '#fff', border: '1px solid #333', borderRadius: '6px', marginBottom: '10px'}}
+                                />
+
                                 <button type="submit">Kaydet</button>
                             </form>
                         )}

@@ -48,6 +48,7 @@ exports.addItemToOrder = async (tableId, userId, productId, basePrice, quantity 
             // Seçenekler farklıysa masaya YENİ SATIR aç!
             await OrderItem.create({
                 order_id: order.id,
+                user_id: userId,
                 product_id: productId,
                 price: finalUnitPrice,
                 quantity: quantity,

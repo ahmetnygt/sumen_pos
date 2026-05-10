@@ -34,6 +34,7 @@ exports.addItem = async (req, res) => {
         }
         req.app.get('io').emit('updateTables');
         req.app.get('io').emit('updateDashboard');
+        req.app.get('io').emit('updateKitchen');
 
         res.status(200).json({ message: 'Sipariş eklendi.', orderItem });
     } catch (error) { res.status(400).json({ message: error.message }); }
@@ -120,4 +121,63 @@ exports.getLiveSummary = async (req, res) => {
         console.error("Radar Verisi Çekilemedi:", error);
         res.status(500).json({ message: 'Özet alınamadı' });
     }
+};
+
+// --- MUTFAK (KDS) MOTORU ---
+
+// Bekleyen tüm siparişleri mutfağa çek
+exports.getKitchenOrders = async (req, res) => {
+    try {
+        const { OrderItem, Order, Product, User, Table } = require('../models');
+        const items = await OrderItem.findAll({
+            where: { status: 'Siparişte' },
+            include: [
+                { model: Product, attributes: ['id', 'name', 'instructions'] },
+                { model: User, attributes: ['name', 'surname'] }, // Garson bilgisi
+                { model: Order, include: [{ model: Table, attributes: ['name'] }] } // Masa ismi
+            ],
+            order: [['id', 'ASC']]
+        });
+        res.status(200).json(items);
+    } catch (error) { res.status(500).json({ message: error.message }); }
+};
+
+// Aşçı "Hazır" butonuna bastığında
+exports.markItemReady = async (req, res) => {
+    try {
+        const { OrderItem, Order } = require('../models');
+        const item = await OrderItem.findByPk(req.params.itemId, { include: [{ model: Order }] });
+
+        if (!item) return res.status(404).json({ message: 'Sipariş bulunamadı' });
+
+        await item.update({ status: 'Hazır' });
+
+        // Canlı Yayın (Socket.io) Bildirimleri
+        req.app.get('io').emit('updateKitchen'); // Mutfağın ekranından o siparişi sil
+        req.app.get('io').emit('updateTables'); // Kasayı güncelle
+
+        // Garsona anlık Toast bildirimi gönder
+        req.app.get('io').emit('orderReadyToServe', {
+            tableId: item.Order.table_id,
+            itemName: req.body.itemName || 'Bir sipariş'
+        });
+
+        res.status(200).json({ message: 'Sipariş hazır olarak işaretlendi.' });
+    } catch (error) { res.status(400).json({ message: error.message }); }
+};
+
+exports.getKitchenHistory = async (req, res) => {
+    try {
+        const { OrderItem, Product, Order, Table } = require('../models');
+        const history = await OrderItem.findAll({
+            where: { status: 'Hazır' },
+            limit: 10, // Son 10 sipariş yeterli
+            order: [['updatedAt', 'DESC']],
+            include: [
+                { model: Product, attributes: ['name'] },
+                { model: Order, include: [{ model: Table, attributes: ['name'] }] }
+            ]
+        });
+        res.status(200).json(history);
+    } catch (error) { res.status(500).json({ message: error.message }); }
 };
