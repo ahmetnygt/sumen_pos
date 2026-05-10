@@ -11,9 +11,9 @@ router.get('/table/:tableId', orderController.getActiveOrder);
 router.post('/table/:tableId/add-item', orderController.addItem);
 
 // YENİ ROTALAR:
-router.delete('/item/:itemId', authorizeRoles('Admin', 'Kasa'), orderController.cancelItem); // İptali sadece yetkililer yapar
-router.post('/table/:tableId/discount', authorizeRoles('Admin', 'Kasa'), orderController.applyDiscount); // İndirim patron/kasa işi
+router.delete('/item/:itemId', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.cancelItem); // İptali sadece yetkililer yapar
+router.post('/table/:tableId/discount', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.applyDiscount); // İndirim patron/kasa işi
 
-router.post('/table/:tableId/pay', authorizeRoles('Admin', 'Kasa'), orderController.payOrder);
+router.post('/table/:tableId/pay', authorizeRoles('Admin', 'Kasa','Garson'), orderController.payOrder);
 
 module.exports = router;

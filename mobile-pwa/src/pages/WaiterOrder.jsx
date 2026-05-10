@@ -19,6 +19,72 @@ const WaiterOrder = () => {
     const [activeOptions, setActiveOptions] = useState([]);
 
     const [pendingItems, setPendingItems] = useState([]);
+    const [showCheckout, setShowCheckout] = useState(false);
+    const [payAmount, setPayAmount] = useState('');
+    const [selectedQuantities, setSelectedQuantities] = useState({});
+    const [modalError, setModalError] = useState('');
+
+    useEffect(() => {
+        if (showCheckout) {
+            setModalError('');
+        }
+    }, [showCheckout]);
+
+    // Ürün Seçerek (Parçalı) Ödeme Hesaplayıcısı
+    const handleQtyChange = (item, delta) => {
+        const currentQty = selectedQuantities[item.id] || 0;
+        let newQty = currentQty + delta;
+        if (newQty < 0) newQty = 0;
+        if (newQty > item.quantity) newQty = item.quantity;
+
+        const updated = { ...selectedQuantities, [item.id]: newQty };
+        setSelectedQuantities(updated);
+
+        let total = 0;
+        order.OrderItems.forEach(i => { total += (updated[i.id] || 0) * parseFloat(i.price); });
+        setPayAmount(total > 0 ? Math.min(total, remaining).toFixed(2) : '');
+    };
+
+    // Akıllı Mobil Numpad
+    const handleNumpad = (val) => {
+        setModalError('');
+        setPayAmount(prev => {
+            const newVal = prev + val;
+            if (parseFloat(newVal) > remaining + 0.01) {
+                setModalError('Kalan hesaptan fazla tahsilat yapılamaz!'); return prev;
+            }
+            return newVal;
+        });
+        setSelectedQuantities({}); // Elle tutar girilirse parça ürün seçimini sıfırla
+    };
+
+    const handleNumpadBackspace = () => { setModalError(''); setPayAmount(prev => prev.slice(0, -1)); };
+    const handleNumpadClear = () => { setModalError(''); setPayAmount(''); };
+
+    // Ödeme API İsteği
+    const handlePayment = async (method) => {
+        setModalError('');
+        const amount = parseFloat(payAmount || remaining);
+        if (amount <= 0 || isNaN(amount) || amount > remaining + 0.01) {
+            setModalError('Geçerli bir tutar giriniz!'); return;
+        }
+
+        const paidItemsArray = Object.entries(selectedQuantities)
+            .filter(([id, qty]) => qty > 0)
+            .map(([id, qty]) => ({ id: parseInt(id), qty }));
+
+        try {
+            const res = await api.post(`/orders/table/${tableId}/pay`, {
+                pay_amount: amount, payment_method: method, paidItems: paidItemsArray
+            });
+
+            if (res.data.isFullyPaid) {
+                setShowCheckout(false); navigate('/waiter-dashboard');
+            } else {
+                setPayAmount(''); setSelectedQuantities({}); fetchData();
+            }
+        } catch (error) { setModalError('Ödeme başarısız!'); }
+    };
 
     useEffect(() => {
         fetchData();
@@ -152,22 +218,21 @@ const WaiterOrder = () => {
 
     const orderItemsSafe = order?.OrderItems || [];
     const groupedOrderItems = order?.OrderItems?.reduce((acc, item) => {
-        // 1. AŞAMA (GÜVENLİK DUVARI): Veritabanından string (metin) geldiyse onu gerçek Array'e çevir
-        let parsedOptions = item.selected_options;
-        if (typeof parsedOptions === 'string') {
-            try {
-                parsedOptions = JSON.parse(parsedOptions);
-            } catch (e) {
-                parsedOptions = [];
+        // 1. AŞAMA (GÜVENLİK DUVARI): Veritabanından gelen veriyi zorla Array'e (Diziye) çevir!
+        let parsedOptions = [];
+        try {
+            if (typeof item.selected_options === 'string') {
+                parsedOptions = JSON.parse(item.selected_options);
+            } else if (Array.isArray(item.selected_options)) {
+                parsedOptions = item.selected_options;
             }
+        } catch (e) {
+            parsedOptions = []; // Bozuksa bile boş dizi yap, sistemi çökertmesin
         }
-        // Düzeltilmiş diziyi item'ın içine geri koy ki aşağıda HTML çizerken .map() çökmesin!
-        item.selected_options = parsedOptions;
+        item.selected_options = parsedOptions; // Temizlenmiş diziyi item'ın içine geri koy
 
         // 2. AŞAMA: Gruplama anahtarını oluştur
-        const optsKey = item.selected_options && item.selected_options.length > 0
-            ? JSON.stringify(item.selected_options)
-            : '';
+        const optsKey = item.selected_options.length > 0 ? JSON.stringify(item.selected_options) : '';
         const key = `${item.product_id}-${item.status}-${optsKey}`;
 
         // 3. AŞAMA: Adisyondaki miktarları ve fiyatları topla
@@ -205,8 +270,7 @@ const WaiterOrder = () => {
                                                 </span>
                                                 {gItem.status === 'Ödendi' && <span className="paid-badge-small">ÖDENDİ</span>}
                                             </div>
-                                            {/* BÜYÜ BURADA: Seçenekleri adisyona yazdırıyoruz (gItem kullanarak) */}
-                                            {gItem.selected_options && gItem.selected_options.length > 0 && (
+                                            {Array.isArray(gItem.selected_options) && gItem.selected_options.length > 0 && (
                                                 <div style={{ fontSize: '11px', color: gItem.status === 'Ödendi' ? '#555' : '#d4af37', paddingLeft: '10px' }}>
                                                     ↳ + {gItem.selected_options.map(o => o.name).join(', ')}
                                                 </div>
@@ -258,9 +322,9 @@ const WaiterOrder = () => {
                         {pendingItems.length > 0 ? (
                             <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>MUTFAĞA GÖNDER</button>
                         ) : (
-                            <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px', marginTop: '10px' }}>
-                                Ödeme ve iptal işlemleri Kasa'dan yapılmaktadır.
-                            </div>
+                            order && remaining > 0 && orderItemsSafe.length > 0 && (
+                                <button className="mobile-checkout-btn" onClick={() => { setShowCheckout(true); setPayAmount(remaining.toFixed(2)); }}>💳 ÖDEME AL</button>
+                            )
                         )}
                     </div>
                 </div>
@@ -313,6 +377,66 @@ const WaiterOrder = () => {
                         <div className="modal-actions">
                             <button className="cancel-btn" onClick={() => setShowModal(false)}>İptal</button>
                             <button className="confirm-btn" onClick={confirmOptionsAndAdd}>Siparişe Ekle</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* MOBİL ÖDEME (CHECKOUT) EKRANI */}
+            {showCheckout && (
+                <div className="mobile-checkout-overlay">
+                    <div className="mobile-checkout-content">
+                        <div className="mc-header">
+                            <h2>💳 TAHSİLAT (Masa {tableId})</h2>
+                            <button onClick={() => setShowCheckout(false)}>✕</button>
+                        </div>
+
+                        <div className="mc-remaining-display">
+                            <span>KALAN HESAP</span>
+                            <strong>₺{remaining.toFixed(2)}</strong>
+                        </div>
+
+                        <div className="mc-products-scroll">
+                            <p className="mc-subtitle">ÜRÜN SEÇEREK ÖDE (İsteğe Bağlı)</p>
+                            {order?.OrderItems?.map(item => {
+                                if (item.status === 'Ödendi') return null; // Zaten ödenenleri gizle kalabalık yapmasın
+                                const selQty = selectedQuantities[item.id] || 0;
+                                return (
+                                    <div key={item.id} className={`mc-item-row ${selQty > 0 ? 'selected' : ''}`}>
+                                        <div className="mc-item-info">
+                                            <span>{item.quantity}x {item.Product?.name}</span>
+                                            <small>Birim: ₺{parseFloat(item.price).toFixed(2)}</small>
+                                        </div>
+                                        <div className="mc-qty-controls">
+                                            <button onClick={() => handleQtyChange(item, -1)} disabled={selQty === 0}>-</button>
+                                            <span>{selQty}</span>
+                                            <button onClick={() => handleQtyChange(item, 1)} disabled={selQty === item.quantity}>+</button>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        <div className="mc-payment-section">
+                            {modalError && <div className="mc-error">{modalError}</div>}
+
+                            <div className="mc-amount-input-wrapper">
+                                <span>ALINACAK TUTAR (₺)</span>
+                                <div className="mc-amount-display">{payAmount || '0.00'}</div>
+                            </div>
+
+                            <div className="mc-numpad-grid">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                    <button key={num} onClick={() => handleNumpad(num.toString())}>{num}</button>
+                                ))}
+                                <button className="mc-action-btn" onClick={handleNumpadClear}>C</button>
+                                <button onClick={() => handleNumpad('0')}>0</button>
+                                <button className="mc-action-btn" onClick={handleNumpadBackspace}>⌫</button>
+                            </div>
+
+                            <div className="mc-pay-buttons">
+                                <button className="mc-card-btn" onClick={() => handlePayment('Kredi Kartı')}>💳 KART</button>
+                                <button className="mc-cash-btn" onClick={() => handlePayment('Nakit')}>💵 NAKİT</button>
+                            </div>
                         </div>
                     </div>
                 </div>

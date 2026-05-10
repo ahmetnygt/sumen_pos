@@ -26,16 +26,9 @@ const WaiterDashboard = () => {
         }
     };
 
-    const handleTableClick = async (tableId, currentStatus) => {
-        if (currentStatus === 'Boş') {
-            try {
-                await api.post(`/orders/table/${tableId}`);
-            } catch (error) {
-                console.error('Masa açılamadı:', error);
-                return;
-            }
-        }
-        // Garsonu, kendi yetkilerine göre kısıtlanmış özel bir sipariş sayfasına gönderiyoruz
+    const handleTableClick = (tableId, currentStatus) => {
+        // Backend zaten ilk ürün eklendiğinde masayı otomatik "Dolu" yapacak.
+        // Bu yüzden boşuna API isteği atmıyoruz, garsonu mermi gibi masaya sokuyoruz!
         navigate(`/waiter-order/${tableId}`);
     };
 

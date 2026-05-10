@@ -32,7 +32,7 @@ body {
 
 /* 1. KISIM: ÜSTTEKİ ADİSYON / SEPET */
 .receipt-panel {
-    flex: 0.45;
+    flex: 0.60;
     /* Ekranın %45'i */
     display: flex;
     flex-direction: column;
@@ -179,7 +179,7 @@ body {
 
 /* 2. KISIM: ALTTAKI MENÜ SEÇİMİ */
 .menu-panel {
-    flex: 0.55;
+    flex: 0.4;
     /* Ekranın %55'i */
     display: flex;
     flex-direction: column;
@@ -378,4 +378,265 @@ body {
 
 .confirm-btn:active {
     transform: scale(0.98);
+}
+
+/* --- MOBİL GARSON ÖDEME (CHECKOUT) EKRANI --- */
+.mobile-checkout-btn {
+    width: 100%;
+    padding: 16px;
+    margin-top: 15px;
+    background: #00ffcc;
+    color: #000;
+    font-weight: 900;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);
+}
+
+.mobile-checkout-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Ekranı aşağıya yaslar */
+    backdrop-filter: blur(5px);
+}
+
+.mobile-checkout-content {
+    background: #0a0a0a;
+    height: 100vh;
+    /* Ekranın %92'sini kaplar */
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-top: 2px solid var(--primary-color);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #222;
+    padding-bottom: 15px;
+}
+
+.mc-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--primary-color);
+    font-weight: 800;
+}
+
+.mc-header button {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 18px;
+    width: 35px;
+    height: 35px;
+}
+
+.mc-remaining-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #222;
+}
+
+.mc-remaining-display span {
+    font-size: 14px;
+    color: #888;
+    font-weight: bold;
+}
+
+.mc-remaining-display strong {
+    font-size: 26px;
+    color: #e63946;
+}
+
+.mc-products-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 0;
+    border-bottom: 1px solid #222;
+}
+
+.mc-subtitle {
+    font-size: 12px;
+    color: var(--primary-color);
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.mc-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #111;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid #222;
+    transition: 0.2s;
+}
+
+.mc-item-row.selected {
+    border-color: #00ffcc;
+    background: rgba(0, 255, 204, 0.08);
+}
+
+.mc-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.mc-item-info span {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.mc-item-info small {
+    font-size: 11px;
+    color: #777;
+    margin-top: 4px;
+}
+
+.mc-qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mc-qty-controls button {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #222;
+    color: #fff;
+    border: 1px solid #444;
+    font-weight: bold;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mc-qty-controls button:disabled {
+    opacity: 0.3;
+}
+
+.mc-qty-controls span {
+    font-size: 16px;
+    font-weight: 800;
+    width: 15px;
+    text-align: center;
+    color: #fff;
+}
+
+.mc-payment-section {
+    background: transparent;
+    padding-top: 15px;
+    margin-top: auto;
+}
+
+.mc-error {
+    color: #e63946;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+    background: rgba(230, 57, 70, 0.1);
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.mc-amount-input-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.mc-amount-input-wrapper span {
+    font-size: 13px;
+    color: #aaa;
+    font-weight: bold;
+}
+
+.mc-amount-display {
+    font-size: 24px;
+    font-weight: 900;
+    color: #fff;
+    background: #111;
+    padding: 12px 20px;
+    border-radius: 10px;
+    min-width: 140px;
+    text-align: right;
+    border: 1px solid #d4af37;
+}
+
+.mc-numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.mc-numpad-grid button {
+    padding: 15px;
+    font-size: 22px;
+    font-weight: 800;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.mc-numpad-grid button:active {
+    background: #333;
+    transform: scale(0.95);
+}
+
+.mc-action-btn {
+    color: var(--danger-color) !important;
+    background: rgba(230, 57, 70, 0.1) !important;
+}
+
+.mc-pay-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.mc-pay-buttons button {
+    flex: 1;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 900;
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.mc-card-btn {
+    background: #00ffcc;
+}
+
+.mc-cash-btn {
+    background: #d4af37;
 }
