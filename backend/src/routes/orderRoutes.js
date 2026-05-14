@@ -13,6 +13,7 @@ router.get('/summary/live', orderController.getLiveSummary);
 router.get('/kitchen', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.getKitchenOrders);
 router.get('/kitchen/history', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.getKitchenHistory);
 router.post('/kitchen/:itemId/ready', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.markItemReady);
+router.post('/kitchen/bulk-ready', authorizeRoles('Admin', 'Kasa', 'Garson'), orderController.markBulkReady);
 
 // Masalar ve Siparişler
 router.get('/table/:tableId', orderController.getActiveOrder);

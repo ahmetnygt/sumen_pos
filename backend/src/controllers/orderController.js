@@ -139,7 +139,10 @@ exports.getKitchenOrders = async (req, res) => {
             order: [['id', 'ASC']]
         });
         res.status(200).json(items);
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    } catch (error) {
+        console.error("\n❌ MUTFAK AKTİF SİPARİŞ HATASI:", error.message, "\n");
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // Aşçı "Hazır" butonuna bastığında
@@ -166,15 +169,52 @@ exports.markItemReady = async (req, res) => {
     } catch (error) { res.status(400).json({ message: error.message }); }
 };
 
+// --- MUTFAK: TOPLU HAZIRLAMA MOTORU ---
+exports.markBulkReady = async (req, res) => {
+    try {
+        const { OrderItem, Order, Table } = require('../models');
+        const { itemIds } = req.body;
+
+        if (!itemIds || itemIds.length === 0) return res.status(400).json({ message: 'Ürün seçilmedi' });
+
+        // Tüm ürünleri tek seferde "Hazır" yap
+        await OrderItem.update({ status: 'Hazır' }, { where: { id: itemIds } });
+
+        // Bildirim atmak için ilk ürünün masa bilgisini çekelim
+        const firstItem = await OrderItem.findByPk(itemIds[0], {
+            include: [{ model: Order, include: [{ model: Table, attributes: ['name'] }] }]
+        });
+
+        const tableName = firstItem.Order?.Table?.name || `Masa ${firstItem.Order?.table_id}`;
+
+        req.app.get('io').emit('updateKitchen');
+        req.app.get('io').emit('updateTables');
+
+        // Garsona tek bir "Toplu" bildirim fırlat
+        req.app.get('io').emit('orderReadyToServe', {
+            title: '🚀 MASA HAZIR!',
+            message: `${tableName} için ${itemIds.length} parça sipariş mutfaktan çıktı!`,
+            type: 'bulk'
+        });
+
+        res.status(200).json({ message: 'Tümü hazır' });
+    } catch (error) {
+        console.error("Toplu Hazır Hatası:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Mutfak Geçmişi (Radar)
 exports.getKitchenHistory = async (req, res) => {
     try {
-        const { OrderItem, Product, Order, Table } = require('../models');
+        const { OrderItem, Product, Order, Table, User } = require('../models'); // User eklendi
         const history = await OrderItem.findAll({
             where: { status: 'Hazır' },
-            limit: 10, // Son 10 sipariş yeterli
-            order: [['updatedAt', 'DESC']],
+            limit: 20, // Biraz daha fazla görelim
+            order: [['updated_at', 'DESC']], // Son tamamlanan en üstte
             include: [
                 { model: Product, attributes: ['name'] },
+                { model: User, attributes: ['name', 'surname'] }, // Garson/Personel bilgisi
                 { model: Order, include: [{ model: Table, attributes: ['name'] }] }
             ]
         });
