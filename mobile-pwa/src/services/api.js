@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // KENDİ BİLGİSAYARININ (KASANIN) YEREL IP ADRESİNİ BURAYA YAZ
-const API_URL = 'http://192.168.43.201:5000/api';
+const API_URL = 'http://10.52.19.168:5000/api';
 
 const api = axios.create({
     baseURL: API_URL,

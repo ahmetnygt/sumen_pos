@@ -44,22 +44,24 @@ const KitchenDashboard = () => {
         } catch (error) { alert('Masayı kapatırken hata oluştu!'); }
     };
 
-    // BÜYÜ BURADA: Gelen dağınık ürünleri MASALARA GÖRE gruplayan motor
     const groupedOrders = orders.reduce((acc, item) => {
+        const isFastSale = item.Order?.is_fast_sale;
         const tableId = item.Order?.table_id;
-        const tableName = item.Order?.Table?.name || `Masa ${tableId}`;
 
-        if (!acc[tableId]) {
-            acc[tableId] = {
-                tableId,
+        // Eğer hızlı satışsa, kendi adisyon IDsine göre grupla (birbirine girmesin)
+        const groupKey = isFastSale ? `fast-${item.Order.id}` : tableId;
+        const tableName = isFastSale ? `⚡ GEL-AL (#${item.Order.id})` : (item.Order?.Table?.name || `Masa ${tableId}`);
+
+        if (!acc[groupKey]) {
+            acc[groupKey] = {
+                tableId: groupKey,
                 tableName,
-                // İlk ürünün zamanını masanın açılış zamanı sayıyoruz
                 time: item.created_at || item.createdAt,
-                waiter: item.User?.name || 'Sistem',
+                waiter: item.User?.name || 'Kasa/Garson',
                 items: []
             };
         }
-        acc[tableId].items.push(item);
+        acc[groupKey].items.push(item);
         return acc;
     }, {});
 

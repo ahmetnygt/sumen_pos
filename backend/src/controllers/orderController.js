@@ -221,3 +221,25 @@ exports.getKitchenHistory = async (req, res) => {
         res.status(200).json(history);
     } catch (error) { res.status(500).json({ message: error.message }); }
 };
+
+exports.handleFastSale = async (req, res) => {
+    try {
+        const { items, isPaid, paymentMethod } = req.body;
+        const order = await orderService.processFastSale(req.user.id, items, isPaid, paymentMethod);
+
+        await SystemLog.create({
+            table_name: 'GEL-AL (Masasız)',
+            personnel: getPersonnelName(req.user),
+            message: isPaid ? `⚡ ${paymentMethod} Tahsil: ₺${order.total_amount}` : `⚡ Gel-Al sipariş mutfağa atıldı.`,
+            status: isPaid ? 'Kapatıldı' : 'Siparişte'
+        });
+
+        req.app.get('io').emit('updateTables');
+        req.app.get('io').emit('updateDashboard');
+        if (!isPaid) req.app.get('io').emit('updateKitchen');
+
+        res.status(200).json({ message: 'Hızlı satış fişek gibi işlendi', order });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};

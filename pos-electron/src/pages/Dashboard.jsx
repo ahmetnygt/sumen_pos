@@ -84,9 +84,16 @@ const Dashboard = () => {
             </header>
 
             <div className="dashboard-body-container">
-
                 {/* SOL TARAF: MASALAR */}
                 <main className="dashboard-main">
+                    <div style={{ marginBottom: '20px', display: 'flex' }}>
+                        <button
+                            onClick={() => navigate(user?.role === 'Garson' ? '/waiter-order/fast' : '/order/fast')}
+                            style={{ width: '100%', padding: '15px', backgroundColor: '#d4af37', color: '#000', fontSize: '18px', fontWeight: 'bold', border: 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(212, 175, 55, 0.4)' }}
+                        >
+                            ⚡ HIZLI KASA / GEL-AL
+                        </button>
+                    </div>
                     {loading ? (
                         <div className="loading-text">Mekan Durumu Yükleniyor...</div>
                     ) : (

@@ -234,3 +234,76 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
         throw error;
     }
 };
+
+// GEL-AL VE HIZLI SATIŞ MOTORU
+exports.processFastSale = async (userId, items, isPaid, paymentMethod) => {
+    const t = await sequelize.transaction();
+    try {
+        const order = await Order.create({
+            table_id: null, // Masası yok
+            user_id: userId,
+            status: isPaid ? 'Ödendi' : 'Açık',
+            total_amount: 0,
+            paid_amount: 0,
+            discount_amount: 0,
+            is_fast_sale: true
+        }, { transaction: t });
+
+        let totalAmount = 0;
+
+        for (const item of items) {
+            // Frontend'den gelen fiyat ve ekstraları senin sisteminle hesapla
+            const basePrice = parseFloat(item.basePrice || item.price);
+            const qty = item.quantity;
+            let extraPrice = 0;
+
+            if (item.selectedOptions && item.selectedOptions.length > 0) {
+                for (const opt of item.selectedOptions) {
+                    extraPrice += parseFloat(opt.price_diff || 0);
+                }
+            }
+
+            const finalUnitPrice = basePrice + extraPrice;
+            const lineTotal = finalUnitPrice * qty;
+            totalAmount += lineTotal;
+
+            // Ürünü Adisyona Çak
+            await OrderItem.create({
+                order_id: order.id,
+                user_id: userId,
+                product_id: item.id,
+                price: finalUnitPrice,
+                quantity: qty,
+                status: isPaid ? 'Ödendi' : 'Siparişte',
+                selected_options: item.selectedOptions && item.selectedOptions.length > 0 ? JSON.stringify(item.selectedOptions) : null
+            }, { transaction: t });
+
+            // ANA ÜRÜN STOK DÜŞME
+            const baseRecipes = await Recipe.findAll({ where: { product_id: item.id, option_id: null }, transaction: t });
+            for (const recipe of baseRecipes) {
+                await Ingredient.decrement('stock_amount', { by: parseFloat(recipe.amount_used) * qty, where: { id: recipe.ingredient_id }, transaction: t });
+            }
+
+            // EKSTRA (SEÇENEK) STOK DÜŞME
+            if (item.selectedOptions && item.selectedOptions.length > 0) {
+                for (const opt of item.selectedOptions) {
+                    const optRecipes = await Recipe.findAll({ where: { option_id: opt.id }, transaction: t });
+                    for (const recipe of optRecipes) {
+                        await Ingredient.decrement('stock_amount', { by: parseFloat(recipe.amount_used) * qty, where: { id: recipe.ingredient_id }, transaction: t });
+                    }
+                }
+            }
+        }
+
+        // Hesabı Kapat
+        order.total_amount = totalAmount;
+        if (isPaid) order.paid_amount = totalAmount;
+        await order.save({ transaction: t });
+
+        await t.commit();
+        return order;
+    } catch (error) {
+        await t.rollback();
+        throw error;
+    }
+};

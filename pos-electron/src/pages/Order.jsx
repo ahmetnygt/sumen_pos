@@ -56,13 +56,27 @@ const Order = () => {
       setMenu(menuRes.data);
       if (menuRes.data.length > 0 && !activeCategoryId) setActiveCategoryId(menuRes.data[0].id);
 
-      const orderRes = await api.get(`/orders/table/${tableId}`);
-      setOrder(orderRes.data);
+      if (tableId === 'fast') {
+        // Hızlı satışta geçmiş sipariş olmaz, boş bir sanal hesap aç.
+        setOrder({ OrderItems: [], total_amount: 0, paid_amount: 0, discount_amount: 0 });
+      } else {
+        const orderRes = await api.get(`/orders/table/${tableId}`);
+        setOrder(orderRes.data);
+      }
     } catch (error) {
       console.error('Veriler çekilirken hata:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFastSaleCheckout = async (method) => {
+    if (pendingItems.length === 0) return;
+    try {
+      await api.post('/orders/fast-sale', { items: pendingItems, isPaid: true, paymentMethod: method });
+      setPendingItems([]);
+      navigate('/dashboard');
+    } catch (error) { alert('Hata: ' + error.message); }
   };
 
   const handleStageItem = (product, selectedOptions = []) => {
@@ -349,7 +363,9 @@ const Order = () => {
       {/* SOL PANEL (ADİSYON) - Dokunmadım, aynı */}
       <div className="receipt-panel">
         <div className="receipt-header">
-          <h2 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '20px' }}>Masa {tableId}</h2>
+          <h2 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '20px' }}>
+            {tableId === 'fast' ? '⚡ HIZLI KASA (GEL-AL)' : `Masa ${tableId}`}
+          </h2>
           <button className="close-panel-btn" onClick={() => navigate('/dashboard')}>KAPAT</button>
         </div>
 
@@ -423,7 +439,14 @@ const Order = () => {
             </div>
 
             {pendingItems.length > 0 ? (
-              <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>🚀 GÖNDER</button>
+              tableId === 'fast' ? (
+                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  <button className="send-order-btn pulse-anim" onClick={() => handleFastSaleCheckout('Nakit')} style={{ background: '#2ecc71', flex: 1, padding: '15px' }}>💵 NAKİT AL</button>
+                  <button className="send-order-btn pulse-anim" onClick={() => handleFastSaleCheckout('Kredi Kartı')} style={{ background: '#3498db', flex: 1, padding: '15px' }}>💳 KART ÇEK</button>
+                </div>
+              ) : (
+                <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>🚀 GÖNDER</button>
+              )
             ) : (
               order && remaining > 0 && order.OrderItems.length > 0 && (
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>

@@ -6,7 +6,8 @@ const Order = sequelize.define('Order', {
     status: { type: DataTypes.ENUM('Açık', 'Ödendi', 'İptal'), defaultValue: 'Açık' },
     total_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
     paid_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
-    discount_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 }
+    discount_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
+    is_fast_sale: { type: DataTypes.BOOLEAN, defaultValue: false }
 }, {
     tableName: 'orders',
     timestamps: true,

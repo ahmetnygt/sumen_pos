@@ -24,8 +24,13 @@ const WaiterOrder = () => {
     const [selectedQuantities, setSelectedQuantities] = useState({});
     const [modalError, setModalError] = useState('');
 
+    const [discountType, setDiscountType] = useState('amount');
+    const [discountValue, setDiscountValue] = useState('');
+    const [activeInput, setActiveInput] = useState('payAmount');
+
     useEffect(() => {
         if (showCheckout) {
+            setActiveInput('payAmount');
             setModalError('');
         }
     }, [showCheckout]);
@@ -48,18 +53,31 @@ const WaiterOrder = () => {
     // Akıllı Mobil Numpad
     const handleNumpad = (val) => {
         setModalError('');
-        setPayAmount(prev => {
-            const newVal = prev + val;
-            if (parseFloat(newVal) > remaining + 0.01) {
-                setModalError('Kalan hesaptan fazla tahsilat yapılamaz!'); return prev;
-            }
-            return newVal;
-        });
-        setSelectedQuantities({}); // Elle tutar girilirse parça ürün seçimini sıfırla
+        if (activeInput === 'discount') {
+            setDiscountValue(prev => prev + val);
+        } else {
+            setPayAmount(prev => {
+                const newVal = prev + val;
+                if (parseFloat(newVal) > remaining + 0.01) {
+                    setModalError('Kalan hesaptan fazla tahsilat yapılamaz!'); return prev;
+                }
+                return newVal;
+            });
+            setSelectedQuantities({}); // Elle tutar girilirse parça ürün seçimini sıfırla
+        }
     };
 
-    const handleNumpadBackspace = () => { setModalError(''); setPayAmount(prev => prev.slice(0, -1)); };
-    const handleNumpadClear = () => { setModalError(''); setPayAmount(''); };
+    const handleNumpadBackspace = () => {
+        setModalError('');
+        if (activeInput === 'discount') setDiscountValue(prev => prev.slice(0, -1));
+        else setPayAmount(prev => prev.slice(0, -1));
+    };
+
+    const handleNumpadClear = () => {
+        setModalError('');
+        if (activeInput === 'discount') setDiscountValue('');
+        else setPayAmount('');
+    };
 
     // Ödeme API İsteği
     const handlePayment = async (method) => {
@@ -86,6 +104,46 @@ const WaiterOrder = () => {
         } catch (error) { setModalError('Ödeme başarısız!'); }
     };
 
+    // --- YENİ: İNDİRİM MOTORU ---
+    const handleApplyDiscount = async () => {
+        setModalError('');
+        const val = parseFloat(discountValue);
+        if (!val || val <= 0) { setModalError('Geçerli bir iskonto değeri girin!'); return; }
+
+        let calculatedDiscount = val;
+        if (discountType === 'percent') calculatedDiscount = remaining * (val / 100);
+
+        if (calculatedDiscount <= 0 || calculatedDiscount > remaining + 0.01) {
+            setModalError('İskonto tutarı kalan hesaptan büyük olamaz!'); return;
+        }
+
+        try {
+            const res = await api.post(`/orders/table/${tableId}/discount`, { type: discountType, value: discountValue });
+            setDiscountValue('');
+            if (res.data.isFullyPaid) {
+                setShowCheckout(false); navigate('/waiter-dashboard');
+            } else {
+                fetchData(); setPayAmount((remaining - calculatedDiscount).toFixed(2));
+            }
+        } catch (error) { setModalError('İskonto uygulanamadı!'); }
+    };
+
+    const handleRemoveDiscount = async () => {
+        try {
+            await api.post(`/orders/table/${tableId}/discount`, { type: 'amount', value: -(parseFloat(order?.discount_amount) || 0) });
+            fetchData();
+        } catch (error) { alert('İskonto silinemedi!'); }
+    };
+
+    const handleFastSaleCheckout = async (method) => {
+        if (pendingItems.length === 0) return;
+        try {
+            await api.post('/orders/fast-sale', { items: pendingItems, isPaid: true, paymentMethod: method });
+            setPendingItems([]);
+            navigate('/waiter-dashboard');
+        } catch (error) { alert('Hata: ' + error.message); }
+    };
+
     useEffect(() => {
         fetchData();
     }, [tableId]);
@@ -104,13 +162,27 @@ const WaiterOrder = () => {
                 setActiveCategoryId(menuRes.data[0].id);
             }
 
-            const orderRes = await api.get(`/orders/table/${tableId}`);
-            setOrder(orderRes.data || null);
+            // BÜYÜ BURADA: fast ise masa arama!
+            if (tableId === 'fast') {
+                setOrder({ OrderItems: [], total_amount: 0, paid_amount: 0, discount_amount: 0 });
+            } else {
+                const orderRes = await api.get(`/orders/table/${tableId}`);
+                setOrder(orderRes.data || null);
+            }
         } catch (error) {
             console.error('Veriler çekilirken hata:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSendFastSale = async () => {
+        if (pendingItems.length === 0) return;
+        try {
+            await api.post('/orders/fast-sale', { items: pendingItems, isPaid: false });
+            setPendingItems([]);
+            navigate('/waiter-dashboard');
+        } catch (error) { alert('Hata: ' + error.message); }
     };
 
     const handleStageItem = (product, selectedOptions = []) => {
@@ -272,7 +344,9 @@ const WaiterOrder = () => {
             {/* SOL PANEL (ADİSYON) - Kasa Ekranından Farklı! */}
             <div className="receipt-panel">
                 <div className="receipt-header">
-                    <h2 style={{ margin: 0, color: '#00ffcc', fontSize: '20px' }}>Masa {tableId}</h2>
+                    <h2 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '20px' }}>
+                        {tableId === 'fast' ? '⚡ HIZLI KASA (GEL-AL)' : `Masa ${tableId}`}
+                    </h2>
                     <button className="close-panel-btn" onClick={() => navigate('/waiter-dashboard')}>GERİ DÖN</button>
                 </div>
 
@@ -342,10 +416,20 @@ const WaiterOrder = () => {
                         </div>
 
                         {pendingItems.length > 0 ? (
-                            <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>MUTFAĞA GÖNDER</button>
+                            tableId === 'fast' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                                    <button className="send-order-btn pulse-anim" onClick={handleSendFastSale} style={{ background: '#e63946', padding: '12px' }}>🚀 SADECE MUTFAĞA AT</button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="send-order-btn" onClick={() => handleFastSaleCheckout('Nakit')} style={{ background: '#2ecc71', flex: 1, padding: '12px' }}>💵 NAKİT AL</button>
+                                        <button className="send-order-btn" onClick={() => handleFastSaleCheckout('Kredi Kartı')} style={{ background: '#3498db', flex: 1, padding: '12px' }}>💳 KART ÇEK</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button className="send-order-btn pulse-anim" onClick={handleSendPendingOrders}>🚀 MUTFAĞA GÖNDER</button>
+                            )
                         ) : (
                             order && remaining > 0 && orderItemsSafe.length > 0 && (
-                                <button className="mobile-checkout-btn" onClick={() => { setShowCheckout(true); setPayAmount(remaining.toFixed(2)); }}>💳 ÖDEME AL</button>
+                                <button className="mobile-checkout-btn" onClick={() => { setShowCheckout(true); setPayAmount(remaining.toFixed(2)); setActiveInput('payAmount'); }}>💳 ÖDEME AL & İSKONTO</button>
                             )
                         )}
                     </div>
@@ -475,9 +559,36 @@ const WaiterOrder = () => {
                         </div>
 
                         <div className="mc-payment-section">
+
+                            {/* YENİ: İSKONTO ALANI */}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', background: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button onClick={() => setDiscountType('amount')} style={{ padding: '8px 12px', background: discountType === 'amount' ? '#d4af37' : '#333', color: discountType === 'amount' ? '#000' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>₺</button>
+                                    <button onClick={() => setDiscountType('percent')} style={{ padding: '8px 12px', background: discountType === 'percent' ? '#d4af37' : '#333', color: discountType === 'percent' ? '#000' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>%</button>
+                                </div>
+                                <input
+                                    type="number"
+                                    placeholder="İndirim..."
+                                    value={discountValue}
+                                    onChange={(e) => { setDiscountValue(e.target.value); setActiveInput('discount'); }}
+                                    onFocus={() => setActiveInput('discount')}
+                                    style={{ flex: 1, background: '#000', color: '#fff', border: activeInput === 'discount' ? '1px solid #d4af37' : '1px solid #333', borderRadius: '4px', padding: '8px', textAlign: 'center', fontSize: '16px' }}
+                                />
+                                <button onClick={handleApplyDiscount} style={{ background: '#e63946', color: '#fff', border: 'none', borderRadius: '4px', padding: '0 15px', fontWeight: 'bold' }}>DÜŞ</button>
+                            </div>
+
+                            {/* Yapılan indirim varsa göster ve silme butonu koy */}
+                            {parseFloat(order?.discount_amount || 0) > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', color: '#ffc107', fontSize: '14px', fontWeight: 'bold', padding: '0 5px' }}>
+                                    <span>Yapılan İskonto: -₺{parseFloat(order.discount_amount).toFixed(2)}</span>
+                                    <button onClick={handleRemoveDiscount} style={{ background: 'transparent', color: '#ff4444', border: 'none', fontSize: '18px' }}>✖</button>
+                                </div>
+                            )}
+
                             {modalError && <div className="mc-error">{modalError}</div>}
 
-                            <div className="mc-amount-input-wrapper">
+                            {/* onClick kısmını akıllı odaklama ile değiştirdik */}
+                            <div className="mc-amount-input-wrapper" onClick={() => setActiveInput('payAmount')} style={{ borderColor: activeInput === 'payAmount' ? '#00ffcc' : '#333' }}>
                                 <span>ALINACAK TUTAR (₺)</span>
                                 <div className="mc-amount-display">{payAmount || '0.00'}</div>
                             </div>
