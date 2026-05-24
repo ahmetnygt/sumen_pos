@@ -1,27 +1,35 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron'); // dialog eklendi
 const { autoUpdater } = require('electron-updater'); // BÜYÜ BURADA: Güncelleyici eklendi
+const path = require('path'); // <--- EKSİK OLAN BU!
 
 function createWindow() {
     const win = new BrowserWindow({
         width: 1280,
         height: 800,
         fullscreen: true,
-        frame: false,
-        kiosk: true,
+        // frame: false,
+        // kiosk: true,
         title: "Sümen POS",
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            webSecurity: false, // <--- Bunu ekle (DİKKAT: Sadece yerel POS uygulaması olduğu için güvenli)
+            allowRunningInsecureContent: true // <--- Bunu ekle
         }
     });
 
-    // React sunucusunun (Vite) hazır olmasını bekleyen akıllı yükleyici
-    win.loadURL('http://localhost:5173').catch((err) => {
-        console.log('⏳ Vite sunucusu henüz hazır değil, 1.5 saniye sonra tekrar deneniyor...');
-        setTimeout(() => {
-            win.loadURL('http://localhost:5173');
-        }, 1500);
-    });
+    const isDev = process.env.NODE_ENV === 'development';
+
+    if (isDev) {
+        win.loadURL('http://localhost:5173');
+    } else {
+        const startUrl = path.format({
+            pathname: path.join(__dirname, 'index.html'),
+            protocol: 'file:',
+            slashes: true
+        });
+        win.loadURL(startUrl);
+    }
 
     // Menü çubuğunu gizle (Tam bir POS cihazı gibi görünmesi için)
     win.setMenuBarVisibility(false);
@@ -53,8 +61,6 @@ autoUpdater.on('update-downloaded', (info) => {
         }
     });
 });
-
-app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

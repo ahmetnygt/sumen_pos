@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const api = axios.create({
     // Varsa .env'den oku, yoksa çökmemesi için localhost'a bağlan
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+    // baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+    baseURL: "http://161.35.216.9:5000/api"
 });
 
 // Interceptor kodların aynen kalacak...
