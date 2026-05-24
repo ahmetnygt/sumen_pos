@@ -1,0 +1,15 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Product = sequelize.define('Product', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING(100), allowNull: false },
+    price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    instructions: { type: DataTypes.TEXT, allowNull: true }
+}, {
+    tableName: 'products',
+    timestamps: false
+});
+
+module.exports = Product;

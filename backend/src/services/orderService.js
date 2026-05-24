@@ -1,0 +1,311 @@
+const { Order, OrderItem, Product, Table, Recipe, Ingredient, sequelize } = require('../models');
+
+exports.getActiveOrder = async (tableId) => {
+    return await Order.findOne({
+        where: { table_id: tableId, status: 'Açık' },
+        include: [{ model: OrderItem, include: [Product] }]
+    });
+};
+
+exports.addItemToOrder = async (tableId, userId, productId, basePrice, quantity = 1, selectedOptions = null) => {
+    const t = await sequelize.transaction();
+    try {
+        let order = await Order.findOne({ where: { table_id: tableId, status: 'Açık' }, transaction: t });
+        if (!order) {
+            order = await Order.create({ table_id: tableId, user_id: userId, status: 'Açık', total_amount: 0 }, { transaction: t });
+            await Table.update({ status: 'Dolu' }, { where: { id: tableId }, transaction: t });
+        }
+
+        // 1. Ekstra fiyat farklarını hesapla (Örn: Duble ise +250 TL eklenecek)
+        let extraPrice = 0;
+        if (selectedOptions && selectedOptions.length > 0) {
+            for (const opt of selectedOptions) {
+                extraPrice += parseFloat(opt.price_diff || 0);
+            }
+        }
+
+        const finalUnitPrice = parseFloat(basePrice) + extraPrice;
+        const itemTotal = finalUnitPrice * quantity;
+
+        // 2. Akıllı Adisyon Birleştirme: Aynı üründen var mı? VARSJA seçenekleri BİREBİR AYNI MI?
+        const existingItems = await OrderItem.findAll({
+            where: { order_id: order.id, product_id: productId, status: 'Siparişte' },
+            transaction: t
+        });
+
+        let sameItem = null;
+        for (const item of existingItems) {
+            // Eğer daha önceki ürünle yeni gelen ürünün ekstraları %100 aynıysa (ikisi de duble, ikisi de buzluysa) birleştir.
+            if (JSON.stringify(item.selected_options) === JSON.stringify(selectedOptions)) {
+                sameItem = item;
+                break;
+            }
+        }
+
+        if (sameItem) {
+            await sameItem.increment('quantity', { by: quantity, transaction: t });
+        } else {
+            // Seçenekler farklıysa masaya YENİ SATIR aç!
+            await OrderItem.create({
+                order_id: order.id,
+                user_id: userId,
+                product_id: productId,
+                price: finalUnitPrice,
+                quantity: quantity,
+                status: 'Siparişte',
+                // BÜYÜ BURADA: Array'i güvenli JSON String formatına çevirerek veritabanı çökmesini engelliyoruz!
+                selected_options: selectedOptions && selectedOptions.length > 0 ? selectedOptions : null
+            }, { transaction: t });
+        }
+
+        // Ana hesabı kabart
+        await order.increment('total_amount', { by: itemTotal, transaction: t });
+
+        // 1. AŞAMA: Ana Ürünün Stoklarını Düş (Örn: 4cl Chivas)
+        const baseRecipes = await Recipe.findAll({
+            where: { product_id: productId, option_id: null },
+            transaction: t
+        });
+        for (const recipe of baseRecipes) {
+            const totalDeduction = parseFloat(recipe.amount_used) * quantity;
+            await Ingredient.decrement('stock_amount', { by: totalDeduction, where: { id: recipe.ingredient_id }, transaction: t });
+        }
+
+        // 2. AŞAMA: Seçilen Ekstraların Stoklarını Düş (Örn: Duble için +4cl, Enerji için +1 Redbull)
+        if (selectedOptions && selectedOptions.length > 0) {
+            for (const opt of selectedOptions) {
+                const optRecipes = await Recipe.findAll({
+                    where: { option_id: opt.id },
+                    transaction: t
+                });
+                for (const recipe of optRecipes) {
+                    const totalDeduction = parseFloat(recipe.amount_used) * quantity;
+                    await Ingredient.decrement('stock_amount', { by: totalDeduction, where: { id: recipe.ingredient_id }, transaction: t });
+                }
+            }
+        }
+
+        await t.commit();
+        return { message: 'Sipariş başarıyla işlendi.' };
+    } catch (error) {
+        await t.rollback();
+        throw new Error('Sipariş eklenemedi: ' + error.message);
+    }
+};
+
+// YENİ: SATIR İPTALİ (Stoku geri koyar, hesaptan düşer)
+exports.cancelOrderItem = async (itemId) => {
+    const t = await sequelize.transaction();
+    try {
+        const item = await OrderItem.findByPk(itemId, { transaction: t });
+        if (!item || item.status !== 'Siparişte') throw new Error('İptal edilecek uygun ürün bulunamadı.');
+
+        const order = await Order.findByPk(item.order_id, { transaction: t });
+        const itemTotal = parseFloat(item.price) * item.quantity;
+
+        await order.decrement('total_amount', { by: itemTotal, transaction: t });
+
+        // 1. AŞAMA: Ana Ürün İadesi
+        const baseRecipes = await Recipe.findAll({
+            where: { product_id: item.product_id, option_id: null },
+            transaction: t
+        });
+        for (const recipe of baseRecipes) {
+            const totalRefund = parseFloat(recipe.amount_used) * item.quantity;
+            await Ingredient.increment('stock_amount', { by: totalRefund, where: { id: recipe.ingredient_id }, transaction: t });
+        }
+
+        // 2. AŞAMA: Seçeneklerin İadesi
+        if (item.selected_options && item.selected_options.length > 0) {
+            for (const opt of item.selected_options) {
+                const optRecipes = await Recipe.findAll({
+                    where: { option_id: opt.id },
+                    transaction: t
+                });
+                for (const recipe of optRecipes) {
+                    const totalRefund = parseFloat(recipe.amount_used) * item.quantity;
+                    await Ingredient.increment('stock_amount', { by: totalRefund, where: { id: recipe.ingredient_id }, transaction: t });
+                }
+            }
+        }
+
+        await item.destroy({ transaction: t }); // Ürünü adisyondan uçur
+
+        // Masada başka ürün kalmadıysa ve hiç para ödenmediyse masayı boşa çıkar
+        const remainingItems = await OrderItem.count({ where: { order_id: order.id }, transaction: t });
+        if (remainingItems === 0 && parseFloat(order.paid_amount) === 0) {
+            await order.update({ status: 'İptal' }, { transaction: t });
+            await Table.update({ status: 'Boş' }, { where: { id: order.table_id }, transaction: t });
+        }
+
+        await t.commit();
+        return { message: 'Ürün iptal edildi, stoklar iade edildi.' };
+    } catch (error) {
+        await t.rollback();
+        throw error;
+    }
+};
+
+// YENİ: İNDİRİM UYGULAMA (Yüzde veya Direkt Para)
+exports.applyDiscount = async (tableId, type, value) => {
+    const order = await Order.findOne({ where: { table_id: tableId, status: 'Açık' } });
+    if (!order) throw new Error('Açık adisyon yok.');
+
+    let discountAmt = 0;
+    const total = parseFloat(order.total_amount);
+
+    if (type === 'percent') {
+        discountAmt = total * (parseFloat(value) / 100);
+    } else {
+        discountAmt = parseFloat(value);
+    }
+
+    if (discountAmt > total) throw new Error('İndirim tutarı ana hesaptan büyük olamaz amk!');
+
+    await order.update({ discount_amount: discountAmt });
+    return { message: 'İndirim uygulandı.', discount_amount: discountAmt };
+};
+
+// GÜNCELLENDİ: ÖDEME ALMA (Adet Seçmeli ve Satır Bölmeli)
+exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = []) => {
+    const t = await sequelize.transaction();
+    try {
+        const order = await Order.findOne({ where: { table_id: tableId, status: 'Açık' }, transaction: t });
+        if (!order) throw new Error('Bu masada açık hesap bulunamadı.');
+
+        const amountToPay = parseFloat(payAmount);
+        const total = parseFloat(order.total_amount);
+        const discount = parseFloat(order.discount_amount || 0);
+        const currentPaid = parseFloat(order.paid_amount || 0);
+
+        const remaining = total - discount - currentPaid;
+
+        if (amountToPay > remaining + 0.01) {
+            throw new Error(`Kalan tutardan (${remaining.toFixed(2)} ₺) fazla para çekemezsin!`);
+        }
+
+        // BÜYÜ BURADA: Seçili ürünlerin miktarlarını kontrol edip satırları bölüyoruz
+        if (paidItems && paidItems.length > 0) {
+            for (const pItem of paidItems) {
+                const orderItem = await OrderItem.findOne({
+                    where: { id: pItem.id, order_id: order.id, status: 'Siparişte' },
+                    transaction: t
+                });
+
+                if (orderItem) {
+                    if (orderItem.quantity == pItem.qty) {
+                        // Hepsini ödediyse direkt status değiştir
+                        await orderItem.update({ status: 'Ödendi' }, { transaction: t });
+                    } else if (orderItem.quantity > pItem.qty) {
+                        // Sadece bir kısmını ödediyse (Örn: 3 biranın 1'i)
+                        // 1. Kalanı güncelle (Siparişte kalacak olanlar)
+                        await orderItem.update({ quantity: orderItem.quantity - pItem.qty }, { transaction: t });
+
+                        // 2. Ödenen kısmı yeni satır olarak fırlat
+                        await OrderItem.create({
+                            order_id: order.id,
+                            product_id: orderItem.product_id,
+                            price: orderItem.price,
+                            quantity: pItem.qty,
+                            status: 'Ödendi',
+                            selected_options: orderItem.selected_options // BÜYÜ BURADA: Bunu eklemezsen seçenekler çöpe gider!
+                        }, { transaction: t });
+                    }
+                }
+            }
+        }
+
+        const newPaidAmount = currentPaid + amountToPay;
+
+        if (newPaidAmount >= remaining - 0.01) {
+            await order.update({ paid_amount: total, status: 'Ödendi' }, { transaction: t });
+            await Table.update({ status: 'Boş' }, { where: { id: tableId }, transaction: t });
+            await OrderItem.update({ status: 'Ödendi' }, { where: { order_id: order.id, status: 'Siparişte' }, transaction: t });
+
+            await t.commit();
+            return { message: 'Hesap komple kapatıldı.', isFullyPaid: true };
+        } else {
+            await order.update({ paid_amount: newPaidAmount }, { transaction: t });
+            await t.commit();
+            return { message: 'Kısmi ödeme alındı.', isFullyPaid: false, remaining: remaining - amountToPay };
+        }
+    } catch (error) {
+        await t.rollback();
+        throw error;
+    }
+};
+
+// GEL-AL VE HIZLI SATIŞ MOTORU
+exports.processFastSale = async (userId, items, isPaid, paymentMethod) => {
+    const t = await sequelize.transaction();
+    try {
+        const order = await Order.create({
+            table_id: null, // Masası yok
+            user_id: userId,
+            status: isPaid ? 'Ödendi' : 'Açık',
+            total_amount: 0,
+            paid_amount: 0,
+            discount_amount: 0,
+            is_fast_sale: true
+        }, { transaction: t });
+
+        let totalAmount = 0;
+
+        for (const item of items) {
+            // GÜVENLİK DUVARI: Frontend'den ne gelirse gelsin doğruyu bulur
+            const productId = item.productId || item.id;
+            const basePrice = parseFloat(item.price || item.basePrice || 0);
+            const qty = item.quantity;
+            const opts = item.selectedOptions || [];
+
+            let extraPrice = 0;
+            if (opts.length > 0) {
+                for (const opt of opts) {
+                    extraPrice += parseFloat(opt.price_diff || 0);
+                }
+            }
+
+            const finalUnitPrice = basePrice + extraPrice;
+            const lineTotal = finalUnitPrice * qty;
+            totalAmount += lineTotal;
+
+            // Ürünü Adisyona Çak
+            await OrderItem.create({
+                order_id: order.id,
+                user_id: userId,
+                product_id: productId, // BÜYÜ BURADA!
+                price: finalUnitPrice,
+                quantity: qty,
+                status: isPaid ? 'Ödendi' : 'Siparişte',
+                selected_options: opts.length > 0 ? JSON.stringify(opts) : null
+            }, { transaction: t });
+
+            // ANA ÜRÜN STOK DÜŞME
+            const baseRecipes = await Recipe.findAll({ where: { product_id: productId, option_id: null }, transaction: t });
+            for (const recipe of baseRecipes) {
+                await Ingredient.decrement('stock_amount', { by: parseFloat(recipe.amount_used) * qty, where: { id: recipe.ingredient_id }, transaction: t });
+            }
+
+            // EKSTRA (SEÇENEK) STOK DÜŞME
+            if (opts.length > 0) {
+                for (const opt of opts) {
+                    const optRecipes = await Recipe.findAll({ where: { option_id: opt.id }, transaction: t });
+                    for (const recipe of optRecipes) {
+                        await Ingredient.decrement('stock_amount', { by: parseFloat(recipe.amount_used) * qty, where: { id: recipe.ingredient_id }, transaction: t });
+                    }
+                }
+            }
+        }
+
+        // Hesabı Kapat
+        order.total_amount = totalAmount;
+        if (isPaid) order.paid_amount = totalAmount;
+        await order.save({ transaction: t });
+
+        await t.commit();
+        return order;
+    } catch (error) {
+        await t.rollback();
+        throw error;
+    }
+};

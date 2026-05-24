@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+
+body {
+    margin: 0
+}
+
+.dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #0a0a0a;
+    color: #fff;
+}
+
+.dashboard-header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.header-left h2 {
+    margin: 0;
+    color: #d4af37;
+    font-size: 22px;
+    font-weight: 900;
+}
+
+.waiter-badge {
+    font-size: 11px;
+    color: #aaa;
+    background: #222;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+.logout-btn {
+    background: #e63946;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    width: 100%;
+    font-size: 14px;
+}
+
+.dashboard-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+/* Mobilde ekran boyutuna göre otomatik 3 veya 4 sütun yapar */
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.table-card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: 0.1s;
+}
+
+.table-card:active {
+    transform: scale(0.95);
+}
+
+.table-card.empty {
+    border-color: #333;
+}
+
+.table-card.occupied {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.table-number {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+}
+
+.table-status {
+    font-size: 11px;
+    color: #888;
+    margin-top: 5px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.table-amount {
+    position: absolute;
+    bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #d4af37;
+}

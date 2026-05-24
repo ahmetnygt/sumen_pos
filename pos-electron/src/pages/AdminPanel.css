@@ -1,0 +1,136 @@
+.admin-layout {
+    height: 100vh;
+    width: 100vw;
+    background-color: #050505;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.admin-header {
+    background: #111;
+    border-bottom: 2px solid #d4af37;
+    padding: 20px 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-logo h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #fff;
+    letter-spacing: 2px;
+}
+
+.admin-logo h2 span {
+    color: #d4af37;
+    font-weight: 900;
+}
+
+.admin-logo p {
+    margin: 5px 0 0 0;
+    color: #888;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.admin-badge {
+    background: rgba(212, 175, 55, 0.1);
+    color: #d4af37;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid #d4af37;
+}
+
+.back-kasa-btn {
+    background: transparent;
+    color: white;
+    border: 1px solid #444;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.back-kasa-btn:hover {
+    background: #222;
+    border-color: #d4af37;
+    color: #d4af37;
+}
+
+.admin-content {
+    padding: 40px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.module-title {
+    color: #555;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+    border-bottom: 1px dashed #333;
+    padding-bottom: 10px;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.admin-card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 30px 25px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.admin-card:hover {
+    background: #151515;
+    border-color: #d4af37;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+.admin-card:active {
+    transform: translateY(0);
+}
+
+.card-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.admin-card h4 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    color: #eee;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.admin-card p {
+    margin: 0;
+    color: #777;
+    font-size: 13px;
+    line-height: 1.5;
+}
