@@ -80,7 +80,7 @@ const WaiterDashboard = () => {
                             className={`table-card ${table.status === 'Boş' ? 'empty' : 'occupied'}`}
                             onClick={() => handleTableClick(table.id, table.status)}
                         >
-                            <div className="table-number">{table.id}</div>
+                            <div className="table-number">{table.name}</div>
                             <div className="table-status">{table.status === 'Boş' ? 'Boş' : 'Dolu'}</div>
                             {table.status !== 'Boş' && table.total_amount > 0 && (
                                 <div className="table-amount">₺{parseFloat(table.total_amount).toFixed(2)}</div>
