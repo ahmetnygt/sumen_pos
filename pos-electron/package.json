@@ -34,10 +34,13 @@
   "build": {
     "appId": "com.sumen.pos",
     "asar": true,
+    "directories": {
+      "output": "release"
+    },
     "files": [
-      "**/*",
-      "!dist/**/*",
-      "dist/**/*"
+      "dist/**/*",
+      "main.js",
+      "package.json"
     ],
     "publish": [
       {

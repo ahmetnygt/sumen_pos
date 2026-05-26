@@ -7,8 +7,8 @@ function createWindow() {
         width: 1280,
         height: 800,
         fullscreen: true,
-        // frame: false,
-        // kiosk: true,
+        frame: false,
+        kiosk: true,
         title: "Sümen POS",
         webPreferences: {
             nodeIntegration: true,
@@ -22,17 +22,16 @@ function createWindow() {
 
     if (isDev) {
         win.loadURL('http://localhost:5173');
+        win.webContents.openDevTools(); // Geliştirme aşamasında devtools aç
     } else {
-        const startUrl = path.format({
-            pathname: path.join(__dirname, 'index.html'),
-            protocol: 'file:',
-            slashes: true
-        });
-        win.loadURL(startUrl);
-    }
+        // DİKKAT: Burada 'dist' klasörünü ve loadFile metodunu kullanıyoruz
+        const filePath = path.join(__dirname, 'dist', 'index.html');
 
-    // Menü çubuğunu gizle (Tam bir POS cihazı gibi görünmesi için)
-    win.setMenuBarVisibility(false);
+        win.loadFile(filePath).catch(err => {
+            console.error("HTML Dosyası Yüklenemedi:", err);
+        });
+    }
+    win.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
