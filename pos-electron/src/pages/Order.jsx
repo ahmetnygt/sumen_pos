@@ -383,29 +383,32 @@ const Order = () => {
               <p style={{ color: '#444', fontSize: '12px', fontStyle: 'italic' }}>Kayıtlı sipariş yok.</p>
             ) : (
               <ul className="order-list">
-                {Object.values(groupedOrderItems).map(gItem => (
-                  <li key={`${gItem.product_id}-${gItem.status}-${Math.random()}`} className="order-list-item">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-color)', fontWeight: 'bold', fontSize: '13px', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
-                          {gItem.totalQty}x {gItem.Product?.name}
-                        </span>
-                        {gItem.status === 'Ödendi' && <span className="paid-badge-small">ÖDENDİ</span>}
-                      </div>
-                      {/* BÜYÜ BURADA: Seçenekleri adisyona yazdırıyoruz (gItem kullanarak) */}
-                      {gItem.selected_options && gItem.selected_options.length > 0 && (
-                        <div style={{ fontSize: '11px', color: gItem.status === 'Ödendi' ? '#555' : '#d4af37', paddingLeft: '10px' }}>
-                          ↳ + {gItem.selected_options.map(o => o.name).join(', ')}
-                        </div>
+                {groupedOrderItems.map((gItem) => (
+                  <div
+                    key={`${gItem.product_id}-${gItem.status}-${gItem.uniqueId}`}
+                    className={`order-item-row ${gItem.status === 'Ödendi' ? 'paid-item opacity-50' : ''}`}
+                  >
+                    <div className="item-details">
+                      {/* Ödenen ürünlerin üstünü çizerek kasiyere görsel geri bildirim ver */}
+                      <span className={gItem.status === 'Ödendi' ? 'text-decoration-line-through text-gray-500' : ''}>
+                        {gItem.quantity}x {gItem.name}
+                      </span>
+
+                      {/* Seçenekleri (Duble, Enerji vb.) göster */}
+                      {gItem.selectedOptions && gItem.selectedOptions.map(opt => (
+                        <small key={opt.id} className="text-muted d-block"> ↳ + {opt.name}</small>
+                      ))}
+                    </div>
+
+                    <div className="item-price">
+                      {/* Duruma göre Fiyat veya 'Ödendi' etiketi bas */}
+                      {gItem.status === 'Ödendi' ? (
+                        <span className="badge bg-success text-white px-2 py-1 rounded">Ödendi</span>
+                      ) : (
+                        <span>{gItem.price * gItem.quantity} ₺</span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
-                        ₺{gItem.sumPrice.toFixed(2)}
-                      </strong>
-                      {gItem.status !== 'Ödendi' && <button className="cancel-btn-small" onClick={() => handleCancelItem(gItem.id)}>✕</button>}
-                    </div>
-                  </li>
+                  </div>
                 ))}
               </ul>
             )}
