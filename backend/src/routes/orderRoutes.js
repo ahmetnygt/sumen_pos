@@ -21,10 +21,10 @@ router.get('/table/:tableId', orderController.getActiveOrder);
 router.post('/table/:tableId/add-item', orderController.addItem);
 
 // İptal ve Ödeme
-router.delete('/item/:itemId', authorizeRoles('Admin', 'Kasa', 'Garson', "Muftak"), orderController.cancelItem);
-router.post('/table/:tableId/discount', authorizeRoles('Admin', 'Kasa', 'Garson', "Muftak"), orderController.applyDiscount);
-router.post('/table/:tableId/pay', authorizeRoles('Admin', 'Kasa', 'Garson', "Muftak"), orderController.payOrder);
+router.delete('/item/:itemId', authorizeRoles('Admin', 'Kasa', 'Garson', "Mutfak"), orderController.cancelItem);
+router.post('/table/:tableId/discount', authorizeRoles('Admin', 'Kasa', 'Garson', "Mutfak"), orderController.applyDiscount);
+router.post('/table/:tableId/pay', authorizeRoles('Admin', 'Kasa', 'Garson', "Mutfak"), orderController.payOrder);
 
-router.post('/fast-sale', authorizeRoles('Admin', 'Kasa', 'Garson', "Muftak"), orderController.handleFastSale);
+router.post('/fast-sale', authorizeRoles('Admin', 'Kasa', 'Garson', "Mutfak"), orderController.handleFastSale);
 
 module.exports = router;

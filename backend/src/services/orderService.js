@@ -115,9 +115,20 @@ exports.cancelOrderItem = async (itemId) => {
             await Ingredient.increment('stock_amount', { by: totalRefund, where: { id: recipe.ingredient_id }, transaction: t });
         }
 
-        // 2. AŞAMA: Seçeneklerin İadesi
-        if (item.selected_options && item.selected_options.length > 0) {
-            for (const opt of item.selected_options) {
+        // 2. AŞAMA: Seçeneklerin İadesi (GÜVENLİ PARSE EKLENDİ)
+        let parsedOptions = [];
+        try {
+            if (typeof item.selected_options === 'string') {
+                parsedOptions = JSON.parse(item.selected_options);
+            } else if (Array.isArray(item.selected_options)) {
+                parsedOptions = item.selected_options;
+            }
+        } catch (e) {
+            parsedOptions = [];
+        }
+
+        if (parsedOptions && parsedOptions.length > 0) {
+            for (const opt of parsedOptions) {
                 const optRecipes = await Recipe.findAll({
                     where: { option_id: opt.id },
                     transaction: t

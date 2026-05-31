@@ -313,6 +313,16 @@ const WaiterOrder = () => {
         }
     };
 
+    const handleCancelItem = async (itemId) => {
+        if (!window.confirm('Bu siparişi adisyondan silmek istediğine emin misin?')) return;
+        try {
+            await api.delete(`/orders/item/${itemId}`);
+            fetchData();
+        } catch (error) {
+            alert('İptal başarısız! Hata: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
     const getActiveProducts = () => {
         const category = menu.find(c => c.id === activeCategoryId);
         return category ? (category.Products || category.products || []) : [];
