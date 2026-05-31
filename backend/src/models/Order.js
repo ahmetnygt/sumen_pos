@@ -7,7 +7,12 @@ const Order = sequelize.define('Order', {
     total_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
     paid_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
     discount_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
-    is_fast_sale: { type: DataTypes.BOOLEAN, defaultValue: false }
+    is_fast_sale: { type: DataTypes.BOOLEAN, defaultValue: false },
+    payment_method: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'Nakit' // Varsayılan değer
+    },
 }, {
     tableName: 'orders',
     timestamps: true,

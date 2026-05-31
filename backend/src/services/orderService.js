@@ -239,34 +239,36 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
             }
         }
 
-        // 4. KAPANIŞ MANTIĞI: Yeni ödenen toplam tutarı hesapla
         const newPaidAmount = currentPaid + amountToPay;
 
-        // Eğer hesap tamamen kapandıysa (Küsürat toleranslı kontrol)
+        // Parçalı ödemelerde farklı yöntemler kullanılmışsa raporda "Karışık" görünsün
+        let methodToSave = paymentMethod;
+        if (currentPaid > 0 && order.payment_method && order.payment_method !== paymentMethod) {
+            methodToSave = 'Karışık (Nakit + Kart)';
+        }
+
         if (newPaidAmount >= remaining - 0.01) {
-            // Adisyonu kapat
-            await order.update({ paid_amount: total, status: 'Ödendi' }, { transaction: t });
-            // Masayı boşa çıkar
+            // TAM KAPANMA: payment_method'u da kaydet
+            await order.update({
+                paid_amount: total,
+                status: 'Ödendi',
+                payment_method: methodToSave
+            }, { transaction: t });
+
             await Table.update({ status: 'Boş' }, { where: { id: tableId }, transaction: t });
-            // Masada kalan ve ödenmemiş gibi duran askıdaki tüm ürünleri "Ödendi" yap
-            await OrderItem.update(
-                { status: 'Ödendi' },
-                { where: { order_id: order.id, status: 'Siparişte' }, transaction: t }
-            );
+            await OrderItem.update({ status: 'Ödendi' }, { where: { order_id: order.id, status: 'Siparişte' }, transaction: t });
 
             await t.commit();
             return { message: 'Hesap komple kapatıldı.', isFullyPaid: true };
-
         } else {
-            // Kısmi ödeme (Parçalı Tahsilat) yapıldıysa adisyonu sadece güncelle, masayı kapatma
-            await order.update({ paid_amount: newPaidAmount }, { transaction: t });
+            // KISMİ ÖDEME: payment_method'u da kaydet
+            await order.update({
+                paid_amount: newPaidAmount,
+                payment_method: methodToSave
+            }, { transaction: t });
 
             await t.commit();
-            return {
-                message: 'Kısmi ödeme alındı.',
-                isFullyPaid: false,
-                remaining: remaining - amountToPay
-            };
+            return { message: 'Kısmi ödeme alındı.', isFullyPaid: false, remaining: remaining - amountToPay };
         }
     } catch (error) {
         // Hata durumunda veritabanını eski haline al (Kilitlenme ve veri kaybını önle)

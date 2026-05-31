@@ -7,6 +7,7 @@ import Order from './pages/Order';
 import AdminPanel from './pages/AdminPanel';
 import StockMenu from './pages/StockMenu';
 import Personnel from './pages/Personnel';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/stock-menu" element={<StockMenu />} />
         <Route path="/personnel" element={<Personnel />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
     </Router>
   );

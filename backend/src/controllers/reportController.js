@@ -1,46 +1,37 @@
-const { Order, OrderItem, Product, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { Order, OrderItem, Product } = require('../models');
 
-exports.getGeneralStats = async (req, res) => {
+exports.getSalesReport = async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const { startDate, endDate } = req.query;
+        const whereClause = { status: 'Ödendi' };
 
-        // 1. Günlük Ciro ve İskonto
-        const dailyOrders = await Order.findAll({
-            where: { created_at: { [Op.gte]: today }, status: 'Ödendi' }
-        });
+        // Eğer tarih ve saat aralığı seçildiyse filtreye ekle
+        if (startDate && endDate) {
+            whereClause.updatedAt = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
 
-        const dailyRevenue = dailyOrders.reduce((acc, o) => acc + parseFloat(o.paid_amount || 0), 0);
-        const dailyDiscount = dailyOrders.reduce((acc, o) => acc + parseFloat(o.discount_amount || 0), 0);
-
-        // 2. En Çok Satan Ürünler (Top 5)
-        const topProducts = await OrderItem.findAll({
-            attributes: [
-                'product_id',
-                [sequelize.fn('SUM', sequelize.col('quantity')), 'total_sold'],
-                [sequelize.fn('SUM', sequelize.literal('quantity * price')), 'total_revenue']
-            ],
+        // Fişlerdeki her bir ürünü, içindeki Sipariş (Order) ve Ürün (Product) detayıyla çekiyoruz
+        const sales = await OrderItem.findAll({
             where: { status: 'Ödendi' },
-            include: [{ model: Product, attributes: ['name'] }],
-            group: ['product_id', 'Product.name'],
-            order: [[sequelize.literal('total_sold'), 'DESC']],
-            limit: 5
+            include: [
+                {
+                    model: Order,
+                    where: whereClause,
+                    attributes: ['id', 'updatedAt', 'payment_method', 'table_id']
+                },
+                {
+                    model: Product,
+                    attributes: ['name']
+                }
+            ],
+            order: [[Order, 'updatedAt', 'DESC']] // En yeni satış en üstte
         });
 
-        res.status(200).json({
-            dailyRevenue,
-            dailyDiscount,
-            totalOrders: dailyOrders.length,
-            topProducts: topProducts.map(p => ({
-                name: p.Product?.name,
-                sold: parseInt(p.getDataValue('total_sold')),
-                revenue: parseFloat(p.getDataValue('total_revenue'))
-            }))
-        });
-
+        res.status(200).json(sales);
     } catch (error) {
-        console.error('Sistem Hatası: Raporlar çekilemedi.', error);
-        res.status(500).json({ message: 'Rapor verisi alınamadı.' });
+        res.status(500).json({ message: 'Rapor çekilemedi', error: error.message });
     }
 };

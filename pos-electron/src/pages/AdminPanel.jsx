@@ -48,7 +48,7 @@ const AdminPanel = () => {
                         <p>Ürün fiyatları, kategoriler, hammadde ve reçete yönetimi.</p>
                     </div>
 
-                    <div className="admin-card" onClick={() => alert('Finans Raporları yazılacak')}>
+                    <div className="admin-card" onClick={() => navigate('/reports')}>
                         <div className="card-icon">📈</div>
                         <h4>Finans & Raporlar</h4>
                         <p>Günlük/Aylık ciro, en çok satanlar, iskonto analizleri.</p>
