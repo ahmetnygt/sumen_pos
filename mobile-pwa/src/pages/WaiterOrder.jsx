@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import './Order.css';
+import './Order.css'; 
 
 const WaiterOrder = () => {
     const { tableId } = useParams();
