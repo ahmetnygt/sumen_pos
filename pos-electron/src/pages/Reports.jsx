@@ -107,7 +107,7 @@ const Reports = () => {
                     <tbody>
                         {sales.map(sale => (
                             <tr key={sale.id}>
-                                <td>{new Date(sale.Order.updatedAt).toLocaleString('tr-TR')}</td>
+                                <td>{new Date(sale.Order.updatedAt || sale.Order.updated_at).toLocaleString('tr-TR')}</td>
                                 <td>{sale.Product ? sale.Product.name : 'Silinmiş Ürün'}</td>
                                 <td><small className="text-muted">{renderOptions(sale.selected_options)}</small></td>
                                 <td>{sale.quantity}</td>

@@ -288,9 +288,9 @@ exports.processFastSale = async (userId, items, isPaid, paymentMethod) => {
             total_amount: 0,
             paid_amount: 0,
             discount_amount: 0,
-            is_fast_sale: true
+            is_fast_sale: true,
+            payment_method: isPaid ? (paymentMethod || 'Nakit') : null
         }, { transaction: t });
-
         let totalAmount = 0;
 
         for (const item of items) {
