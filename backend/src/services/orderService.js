@@ -168,23 +168,33 @@ exports.applyDiscount = async (tableId, type, value) => {
 
 // GÜNCELLENDİ: ÖDEME ALMA (Adet Seçmeli ve Satır Bölmeli)
 exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = []) => {
+    // Veritabanı işlemlerini güvene almak için Transaction başlatıyoruz
     const t = await sequelize.transaction();
+
     try {
-        const order = await Order.findOne({ where: { table_id: tableId, status: 'Açık' }, transaction: t });
+        // 1. Masadaki açık siparişi bul
+        const order = await Order.findOne({
+            where: { table_id: tableId, status: 'Açık' },
+            transaction: t
+        });
+
         if (!order) throw new Error('Bu masada açık hesap bulunamadı.');
 
+        // 2. Matematiksel hesaplamaları yap
         const amountToPay = parseFloat(payAmount);
         const total = parseFloat(order.total_amount);
         const discount = parseFloat(order.discount_amount || 0);
         const currentPaid = parseFloat(order.paid_amount || 0);
 
+        // Net kalan tutarı bul
         const remaining = total - discount - currentPaid;
 
+        // Kalan tutardan fazla ödeme alınmasını engelle (Küsürat toleranslı)
         if (amountToPay > remaining + 0.01) {
             throw new Error(`Kalan tutardan (${remaining.toFixed(2)} ₺) fazla para çekemezsin!`);
         }
 
-        // BÜYÜ BURADA: Seçili ürünlerin miktarlarını kontrol edip satırları bölüyoruz
+        // 3. SEÇMELİ ÖDEME (BÜYÜ BURADA): Seçili ürünlerin miktarlarını kontrol edip satırları bölüyoruz
         if (paidItems && paidItems.length > 0) {
             for (const pItem of paidItems) {
                 const orderItem = await OrderItem.findOne({
@@ -194,14 +204,17 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
 
                 if (orderItem) {
                     if (orderItem.quantity == pItem.qty) {
-                        // Hepsini ödediyse direkt status değiştir
+                        // Müşteri masadaki ürünün hepsini ödediyse direkt durumu güncelle
                         await orderItem.update({ status: 'Ödendi' }, { transaction: t });
                     } else if (orderItem.quantity > pItem.qty) {
-                        // Sadece bir kısmını ödediyse (Örn: 3 biranın 1'i)
-                        // 1. Kalanı güncelle (Siparişte kalacak olanlar)
-                        await orderItem.update({ quantity: orderItem.quantity - pItem.qty }, { transaction: t });
+                        // Sadece bir kısmını ödediyse (Örn: 3 biranın 1'ini ödediyse)
 
-                        // 2. Ödenen kısmı yeni satır olarak fırlat
+                        // 1. Kalanı güncelle (Masada kalacak olanlar)
+                        await orderItem.update({
+                            quantity: orderItem.quantity - pItem.qty
+                        }, { transaction: t });
+
+                        // 2. Ödenen kısmı hesaptan düşmek için yeni satır olarak fırlat
                         await OrderItem.create({
                             order_id: order.id,
                             product_id: orderItem.product_id,
@@ -215,21 +228,37 @@ exports.processPayment = async (tableId, payAmount, paymentMethod, paidItems = [
             }
         }
 
+        // 4. KAPANIŞ MANTIĞI: Yeni ödenen toplam tutarı hesapla
         const newPaidAmount = currentPaid + amountToPay;
 
+        // Eğer hesap tamamen kapandıysa (Küsürat toleranslı kontrol)
         if (newPaidAmount >= remaining - 0.01) {
+            // Adisyonu kapat
             await order.update({ paid_amount: total, status: 'Ödendi' }, { transaction: t });
+            // Masayı boşa çıkar
             await Table.update({ status: 'Boş' }, { where: { id: tableId }, transaction: t });
-            await OrderItem.update({ status: 'Ödendi' }, { where: { order_id: order.id, status: 'Siparişte' }, transaction: t });
+            // Masada kalan ve ödenmemiş gibi duran askıdaki tüm ürünleri "Ödendi" yap
+            await OrderItem.update(
+                { status: 'Ödendi' },
+                { where: { order_id: order.id, status: 'Siparişte' }, transaction: t }
+            );
 
             await t.commit();
             return { message: 'Hesap komple kapatıldı.', isFullyPaid: true };
+
         } else {
+            // Kısmi ödeme (Parçalı Tahsilat) yapıldıysa adisyonu sadece güncelle, masayı kapatma
             await order.update({ paid_amount: newPaidAmount }, { transaction: t });
+
             await t.commit();
-            return { message: 'Kısmi ödeme alındı.', isFullyPaid: false, remaining: remaining - amountToPay };
+            return {
+                message: 'Kısmi ödeme alındı.',
+                isFullyPaid: false,
+                remaining: remaining - amountToPay
+            };
         }
     } catch (error) {
+        // Hata durumunda veritabanını eski haline al (Kilitlenme ve veri kaybını önle)
         await t.rollback();
         throw error;
     }
