@@ -1,0 +1,36 @@
+name: DigitalOcean Otomatik Guncelleme (CI/CD)
+
+# Bu işlem sadece "main" dalına push yapıldığında tetiklenir
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucuya Baglan ve Guncelle
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          # Aşağıdaki komutlar senin DigitalOcean sunucunda çalışacak
+          script: |
+            echo "1. Proje klasörüne gidiliyor..."
+            cd /root/sumen_pos
+            
+            echo "2. GitHub'dan yeni kodlar çekiliyor..."
+            git pull origin main
+            
+            echo "3. Backend güncelleniyor ve yeniden başlatılıyor..."
+            cd backend
+            npm install
+            pm2 restart sumen-backend
+            
+            echo "4. Garson Paneli (PWA) güncelleniyor ve derleniyor..."
+            cd ../mobile-pwa
+            npm install
+            npm run build
+            
+            echo "SISTEM GUNCELLENDI!"

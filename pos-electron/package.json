@@ -1,11 +1,11 @@
 {
   "name": "pos-electron",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "main": "main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder",
+    "build": "vite build && electron-builder -p always",
     "electron:start": "electron .",
     "start": "concurrently \"npm run dev\" \"npm run electron:start\""
   },
@@ -47,7 +47,7 @@
         "provider": "github",
         "owner": "ahmetnygt",
         "repo": "sumen_pos",
-        "releaseType": "draft"
+        "releaseType": "release"
       }
     ],
     "win": {
