@@ -22,7 +22,7 @@ function createWindow() {
 
     if (isDev) {
         win.loadURL('http://localhost:5173');
-        win.webContents.openDevTools(); // Geliştirme aşamasında devtools aç
+        // win.webContents.openDevTools(); // Geliştirme aşamasında devtools aç
     } else {
         // DİKKAT: Burada 'dist' klasörünü ve loadFile metodunu kullanıyoruz
         const filePath = path.join(__dirname, 'dist', 'index.html');
