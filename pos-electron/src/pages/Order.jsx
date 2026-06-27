@@ -325,6 +325,39 @@ const Order = () => {
     } catch (error) { setModalError('Ödeme başarısız!'); }
   };
 
+  const handlePrintReceipt = async () => {
+    if (!order) return;
+
+    // Fişe basılacak veriyi o anki siparişten (dinamik olarak) toparla
+    const receiptData = {
+      subTotal: totalAmount.toFixed(2),
+      discount: discountAmount.toFixed(2),
+      total: remaining.toFixed(2),
+      items: Object.values(groupedOrderItems).map(item => ({
+        name: item.Product?.name || item.name, // BÜYÜ BURADA: İsim sorunu çözüldü
+        quantity: item.totalQty,               // BÜYÜ BURADA: Gruplanmış toplam adet
+        price: item.sumPrice.toFixed(2),       // BÜYÜ BURADA: Gruplanmış toplam fiyat
+        // Varsa ekstraları (Örn: "Duble, Enerji") aralarına virgül koyarak yazıcıya yolla
+        options: item.selected_options && item.selected_options.length > 0
+          ? item.selected_options.map(o => o.name).join(', ')
+          : null
+      }))
+    };
+
+    // Electron köprüsünden yazıcıya gönder
+    if (window.electronAPI) {
+      const response = await window.electronAPI.printReceipt(receiptData);
+      if (response.success) {
+        console.log("Fiş makineden çıktı usta!");
+      } else {
+        alert("Yazıcı Hatası: " + response.message);
+      }
+    } else {
+      console.warn("Burası tarayıcı ortamı, yazıcı sadece Electron (Kasa) .exe dosyasından çalışır.");
+      alert("Yazdırma işlemi sadece kasanın ana bilgisayarında çalışır!");
+    }
+  };
+
   const getActiveProducts = () => {
     const category = menu.find(c => c.id === activeCategoryId);
     return category ? (category.Products || category.products || []) : [];
@@ -383,29 +416,40 @@ const Order = () => {
               <p style={{ color: '#444', fontSize: '12px', fontStyle: 'italic' }}>Kayıtlı sipariş yok.</p>
             ) : (
               <ul className="order-list">
-                {groupedOrderItems.map((gItem) => (
+                {Object.values(groupedOrderItems).map((gItem) => (
                   <div
                     key={`${gItem.product_id}-${gItem.status}-${gItem.uniqueId}`}
-                    className={`order-item-row ${gItem.status === 'Ödendi' ? 'paid-item opacity-50' : ''}`}
+                    className={`order-item-row ${gItem.status === 'Ödendi' ? 'paid-item' : ''}`}
                   >
                     <div className="item-details">
-                      {/* Ödenen ürünlerin üstünü çizerek kasiyere görsel geri bildirim ver */}
-                      <span className={gItem.status === 'Ödendi' ? 'text-decoration-line-through text-gray-500' : ''}>
-                        {gItem.quantity}x {gItem.name}
+                      <span className={`item-name-text ${gItem.status === 'Ödendi' ? 'text-decoration-line-through text-muted' : ''}`}>
+                        <span className="item-qty-badge">{gItem.totalQty}x</span>
+                        {gItem.Product?.name}
                       </span>
 
-                      {/* Seçenekleri (Duble, Enerji vb.) göster */}
-                      {gItem.selectedOptions && gItem.selectedOptions.map(opt => (
-                        <small key={opt.id} className="text-muted d-block"> ↳ + {opt.name}</small>
-                      ))}
+                      {gItem.selected_options && gItem.selected_options.length > 0 && (
+                        <span className="item-options-text">
+                          ↳ + {gItem.selected_options.map(o => o.name).join(', ')}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="item-price">
-                      {/* Duruma göre Fiyat veya 'Ödendi' etiketi bas */}
+                    <div className="item-price-action">
                       {gItem.status === 'Ödendi' ? (
-                        <span className="badge bg-success text-white px-2 py-1 rounded">Ödendi</span>
+                        <span className="badge-paid">ÖDENDİ</span>
                       ) : (
-                        <span>{gItem.price * gItem.quantity} ₺</span>
+                        <>
+                          <span className="item-price-val">{gItem.sumPrice.toFixed(2)} ₺</span>
+
+                          {/* İPTAL BUTONU BURAYA EKLENDİ (Gruplanmış ürünün ilk id'sini baz alır) */}
+                          <button
+                            className="delete-item-btn"
+                            title="Siparişi Sil"
+                            onClick={() => handleCancelItem(gItem.id)}
+                          >
+                            ✖
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -460,7 +504,7 @@ const Order = () => {
             ) : (
               order && remaining > 0 && order.OrderItems.length > 0 && (
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                  <button className="print-btn">🖨️ YAZDIR</button>
+                  <button className="print-btn" onClick={handlePrintReceipt}>🖨️ YAZDIR</button>
                   <button className="checkout-btn" onClick={() => { setShowCheckout(true); setPayAmount(remaining.toFixed(2)); setActiveInput('payAmount'); }}>💳 ÖDEME AL</button>
                 </div>
               )
