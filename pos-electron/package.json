@@ -46,7 +46,8 @@
       "dist/**/*",
       "main.js",
       "package.json",
-      "preload.js"
+      "preload.js",
+      "logo.png"
     ],
     "publish": [
       {

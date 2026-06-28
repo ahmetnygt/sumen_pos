@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    printReceipt: (orderData) => ipcRenderer.invoke('print-receipt', orderData)
+    printReceipt: (orderData) => ipcRenderer.invoke('print-receipt', orderData),
+    quitApp: () => ipcRenderer.send('app-quit')
 });

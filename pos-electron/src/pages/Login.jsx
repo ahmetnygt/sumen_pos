@@ -13,10 +13,9 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleExitApp = () => {
-    // Sadece Electron ortamındaysa çalışsın (Tarayıcıdan girildiğinde patlamasın diye)
-    if (window.require) {
-      const { ipcRenderer } = window.require('electron');
-      ipcRenderer.send('app-quit');
+    // Artık güvenli köprüyü (electronAPI) kullanıyoruz
+    if (window.electronAPI && window.electronAPI.quitApp) {
+      window.electronAPI.quitApp();
     } else {
       console.log("Bu özellik sadece masaüstü (Electron) uygulamasında çalışır.");
     }
