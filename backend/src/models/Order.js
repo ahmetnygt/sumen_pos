@@ -11,8 +11,11 @@ const Order = sequelize.define('Order', {
     payment_method: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: 'Nakit' // Varsayılan değer
+        defaultValue: 'Nakit'
     },
+    table_id: { type: DataTypes.INTEGER, allowNull: true },
+    user_id: { type: DataTypes.INTEGER, allowNull: true },
+    branch_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'orders',
     timestamps: true,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { MENU_ICONS, MenuGlyph, ProductMark } from '../components/menuIcons';
+import PhotoCrop from '../components/PhotoCrop';
 import './StockMenu.css';
 
 const StockMenu = () => {
@@ -14,8 +16,18 @@ const StockMenu = () => {
 
     const [showModal, setShowModal] = useState(null);
     const [formData, setFormData] = useState({});
+    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+    const [cropSrc, setCropSrc] = useState(null);
 
     useEffect(() => { fetchData(); }, []);
+
+    useEffect(() => {
+        if (!categories.length) {
+            setSelectedCategoryId(null);
+            return;
+        }
+        setSelectedCategoryId(prev => (categories.some(cat => cat.id === prev) ? prev : categories[0].id));
+    }, [categories]);
 
     const fetchData = async () => {
         try {
@@ -33,7 +45,7 @@ const StockMenu = () => {
                 catProducts.forEach(p => {
                     allProducts.push({
                         ...p,
-                        Category: { id: cat.id, name: cat.name }
+                        Category: { id: cat.id, name: cat.name, icon: cat.icon }
                     });
                 });
             });
@@ -103,6 +115,22 @@ const StockMenu = () => {
         }
     };
 
+    const closeModal = () => {
+        if (cropSrc) URL.revokeObjectURL(cropSrc);
+        setCropSrc(null);
+        setShowModal(null);
+    };
+
+    const onPhoto = (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        if (cropSrc) URL.revokeObjectURL(cropSrc);
+        setCropSrc(URL.createObjectURL(file));
+    };
+
+    const visibleProducts = products.filter(prod => String(prod.Category?.id || prod.category_id) === String(selectedCategoryId));
+
     return (
         <div className="stock-menu-layout">
             <header className="stock-header">
@@ -146,37 +174,60 @@ const StockMenu = () => {
                 {activeTab === 'menu' && (
                     <div className="menu-split">
                         <div className="categories-side">
-                            <h3>Kategoriler</h3>
-                            <button className="add-btn-small" onClick={() => { setFormData({}); setShowModal('category'); }}>+ Ekle</button>
+                            <div className="pane-head">
+                                <h3>Kategoriler</h3>
+                                <button className="add-btn-small" onClick={() => { setFormData({ icon: '' }); setShowModal('category'); }}>+ Ekle</button>
+                            </div>
                             <div className="cat-list">
                                 {categories.map(cat => (
-                                    <div key={cat.id} className="cat-item">
-                                        <span>{cat.name}</span>
-                                        <button onClick={() => handleDelete('/menu/category', cat.id)}>✕</button>
+                                    <div
+                                        key={cat.id}
+                                        className={`cat-item${cat.id === selectedCategoryId ? ' selected' : ''}`}
+                                        onClick={() => setSelectedCategoryId(cat.id)}
+                                    >
+                                        <span className="cat-item-main">
+                                            <MenuGlyph name={cat.icon} />
+                                            <span>{cat.name}</span>
+                                        </span>
+                                        <span className="cat-actions">
+                                            <button type="button" className="edit-icon" onClick={(event) => { event.stopPropagation(); setFormData({ id: cat.id, name: cat.name, icon: cat.icon || '' }); setShowModal('category'); }}>✎</button>
+                                            <button type="button" onClick={(event) => { event.stopPropagation(); handleDelete('/menu/category', cat.id); }}>✕</button>
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                         <div className="products-side">
-                            <h3>Ürünler</h3>
-                            <button className="add-btn" onClick={() => { setFormData({ category_id: categories[0]?.id || '' }); setShowModal('product'); }}>+ Yeni Ürün</button>
-                            <table className="luxury-table">
-                                <thead><tr><th>Ürün</th><th>Fiyat</th><th>Kategori</th><th>İşlem</th></tr></thead>
-                                <tbody>
-                                    {products.map(prod => (
-                                        <tr key={prod.id}>
-                                            <td>{prod.name}</td>
-                                            <td>₺{parseFloat(prod.price).toFixed(2)}</td>
-                                            <td>{prod.Category?.name || 'Kategorisiz'}</td>
-                                            <td>
-                                                <button className="edit-icon" onClick={() => { setFormData(prod); setShowModal('product'); }}>✎</button>
-                                                <button className="option-manage-btn" onClick={() => { setFormData(prod); setShowModal('manage_options'); }}>⚙️</button>
-                                                <button className="delete-icon" onClick={() => handleDelete('/menu/product', prod.id)}>✕</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <div className="pane-head">
+                                <h3>Ürünler</h3>
+                                <button className="add-btn" onClick={() => { setFormData({ category_id: selectedCategoryId || '' }); setShowModal('product'); }}>+ Yeni Ürün</button>
+                            </div>
+                            <div className="product-scroll">
+                                <table className="luxury-table">
+                                    <thead><tr><th>Ürün</th><th>Fiyat</th><th>Kategori</th><th>İşlem</th></tr></thead>
+                                    <tbody>
+                                        {visibleProducts.map(prod => (
+                                            <tr key={prod.id}>
+                                                <td>
+                                                    <span className="prod-cell">
+                                                        <ProductMark photo={prod.photo} icon={prod.Category?.icon} />
+                                                        <span>{prod.name}</span>
+                                                    </span>
+                                                </td>
+                                                <td>₺{parseFloat(prod.price).toFixed(2)}</td>
+                                                <td>{prod.Category?.name || 'Kategorisiz'}</td>
+                                                <td>
+                                                    <span className="row-actions">
+                                                        <button type="button" className="edit-icon" onClick={() => { setFormData(prod); setShowModal('product'); }}>✎</button>
+                                                        <button type="button" className="option-manage-btn" onClick={() => { setFormData(prod); setShowModal('manage_options'); }}>⚙️</button>
+                                                        <button type="button" className="delete-icon" onClick={() => handleDelete('/menu/product', prod.id)}>✕</button>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -185,9 +236,22 @@ const StockMenu = () => {
                     <div className="recipe-layout">
                         <div className="recipe-products">
                             <h3>Ürünler</h3>
+                            <div className="recipe-cats">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        className={cat.id === selectedCategoryId ? 'active' : ''}
+                                        onClick={() => setSelectedCategoryId(cat.id)}
+                                    >
+                                        <MenuGlyph name={cat.icon} />
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
                             <div className="prod-scroll-list">
-                                {products.map(p => (
-                                    <button key={p.id} className={selectedProduct?.id === p.id ? 'active' : ''} onClick={() => handleRecipeSelect(p)}>{p.name}</button>
+                                {visibleProducts.map(p => (
+                                    <button key={p.id} type="button" className={selectedProduct?.id === p.id ? 'active' : ''} onClick={() => handleRecipeSelect(p)}>{p.name}</button>
                                 ))}
                             </div>
                         </div>
@@ -208,9 +272,9 @@ const StockMenu = () => {
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                             {currentRecipe.filter(r => r.option_id === null).length > 0 ? (
                                                 currentRecipe.filter(r => r.option_id === null).map(ing => (
-                                                    <div key={ing.recipe_id} style={{ background: 'rgba(212, 175, 55, 0.1)', border: '1px solid #d4af37', padding: '8px 12px', borderRadius: '20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div key={ing.recipe_id} style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid var(--accent)', padding: '8px 12px', borderRadius: '20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         <span style={{ color: '#fff' }}>{ing.name}</span>
-                                                        <span style={{ color: '#d4af37', fontWeight: 'bold' }}>{ing.amount_used}{ing.unit}</span>
+                                                        <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{ing.amount_used}{ing.unit}</span>
                                                         <button style={{ background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer', fontSize: '14px', marginLeft: '5px' }} onClick={async () => {
                                                             await api.delete(`/inventory/recipes/${ing.recipe_id}`);
                                                             handleRecipeSelect(selectedProduct);
@@ -278,8 +342,8 @@ const StockMenu = () => {
 
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-box">
-                        <button className="close-modal" onClick={() => setShowModal(null)}>✖</button>
+                    <div className={`modal-box${showModal === 'category' ? ' category-editor' : ''}${showModal === 'product' ? ' product-editor' : ''}`}>
+                        <button className="close-modal" onClick={closeModal}>✖</button>
 
                         {showModal === 'ingredient' && (
                             <form onSubmit={(e) => handleFormSubmit(e, '/inventory/ingredients')}>
@@ -296,9 +360,20 @@ const StockMenu = () => {
 
                         {showModal === 'category' && (
                             <form onSubmit={(e) => handleFormSubmit(e, '/menu/category')}>
-                                <h3>{formData.id ? 'Düzenle' : 'Yeni Kategori'}</h3>
+                                <h3>{formData.id ? 'Kategoriyi düzenle' : 'Yeni Kategori'}</h3>
                                 <input type="text" placeholder="Kategori Adı" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
-                                <button type="submit">Kaydet</button>
+                                <div className="icon-grid">
+                                    <button type="button" className={`icon-pick${!formData.icon ? ' selected' : ''}`} onClick={() => setFormData({ ...formData, icon: '' })}>Yok</button>
+                                    {MENU_ICONS.map(item => (
+                                        <button key={item.key} type="button" className={`icon-pick${formData.icon === item.key ? ' selected' : ''}`} title={item.label} onClick={() => setFormData({ ...formData, icon: item.key })}>
+                                            <MenuGlyph name={item.key} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="modal-actions">
+                                    <button type="button" className="ghost-btn" onClick={() => setShowModal(null)}>Vazgeç</button>
+                                    <button type="submit">Kaydet</button>
+                                </div>
                             </form>
                         )}
 
@@ -320,7 +395,25 @@ const StockMenu = () => {
                                     style={{ width: '100%', padding: '10px', background: '#111', color: '#fff', border: '1px solid #333', borderRadius: '6px', marginBottom: '10px' }}
                                 />
 
-                                <button type="submit">Kaydet</button>
+                                {cropSrc ? (
+                                    <PhotoCrop
+                                        src={cropSrc}
+                                        onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null); }}
+                                        onConfirm={(photo) => { URL.revokeObjectURL(cropSrc); setCropSrc(null); setFormData(prev => ({ ...prev, photo })); }}
+                                    />
+                                ) : (
+                                    <>
+                                        <div className="photo-field">
+                                            <ProductMark photo={formData.photo} icon={categories.find(cat => String(cat.id) === String(formData.category_id))?.icon} />
+                                            <label className="photo-pick">
+                                                Fotoğraf seç
+                                                <input type="file" accept="image/*" onChange={onPhoto} />
+                                            </label>
+                                            {formData.photo ? <button type="button" className="ghost-btn" onClick={() => setFormData({ ...formData, photo: '' })}>Kaldır</button> : null}
+                                        </div>
+                                        <button type="submit">Kaydet</button>
+                                    </>
+                                )}
                             </form>
                         )}
                         {showModal === 'recipe' && (

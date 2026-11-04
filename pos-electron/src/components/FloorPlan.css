@@ -1,0 +1,178 @@
+.floor-fit {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+}
+
+.floor-guide {
+    position: absolute;
+    z-index: 4;
+    pointer-events: none;
+    background: var(--accent);
+}
+
+.floor-guide.x {
+    top: 0;
+    bottom: 0;
+    width: 1px;
+}
+
+.floor-guide.y {
+    left: 0;
+    right: 0;
+    height: 1px;
+}
+
+.floor-stage {
+    position: relative;
+    aspect-ratio: 1200 / 800;
+    width: min(100cqw, calc(100cqh * 1200 / 800));
+    height: min(100cqh, calc(100cqw * 800 / 1200));
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        #111;
+    background-size: 40px 40px, 40px 40px, auto;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.floor-fit-editor {
+    height: auto;
+    display: block;
+    container-type: normal;
+}
+
+.floor-fit-editor .floor-stage {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1200 / 800;
+}
+
+.floor-decor {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-sizing: border-box;
+    color: var(--accent);
+    user-select: none;
+}
+
+.floor-fit-editor .floor-decor {
+    cursor: grab;
+}
+
+.floor-fit:not(.floor-fit-editor) .floor-stage {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+.floor-fit:not(.floor-fit-editor) .floor-decor {
+    pointer-events: none;
+}
+
+.floor-decor.wall,
+.floor-decor.bar,
+.floor-decor.label {
+    background: #1a1a1a;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.floor-decor-label {
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    padding: 0 8px;
+    text-align: center;
+}
+
+.floor-decor-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: #111;
+    color: var(--accent);
+    cursor: pointer;
+    line-height: 18px;
+}
+
+.floor-decor .floor-resize {
+    border-color: var(--accent);
+}
+
+.floor-table {
+    position: absolute;
+    z-index: 2;
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.floor-fit-editor .floor-table {
+    cursor: grab;
+}
+
+.floor-table strong {
+    font-size: 14px;
+    letter-spacing: 0.4px;
+}
+
+.floor-status {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.floor-table.empty {
+    background: linear-gradient(135deg, #2b9348, #007f5f);
+}
+
+.floor-table.busy {
+    background: linear-gradient(135deg, #d90429, #9b2226);
+}
+
+.floor-table.reserved {
+    background: linear-gradient(135deg, #d4af37, #8a6a12);
+    color: #111;
+}
+
+.floor-table.reserved .floor-status {
+    text-transform: none;
+}
+
+.floor-resize {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 14px;
+    height: 14px;
+    border-right: 2px solid rgba(255, 255, 255, 0.85);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.85);
+    cursor: nwse-resize;
+}

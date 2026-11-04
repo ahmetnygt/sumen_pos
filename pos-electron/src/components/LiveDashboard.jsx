@@ -3,9 +3,7 @@ import { io } from 'socket.io-client';
 import api from '../services/api';
 import './LiveDashboard.css';
 
-const socket = io('http://localhost:5000'); // Telsiz frekansımız
-
-const LiveDashboard = () => {
+const LiveDashboard = ({ view = 'flow', onView, children }) => {
   const [time, setTime] = useState(new Date());
   const [logs, setLogs] = useState([]);
 
@@ -26,16 +24,11 @@ const LiveDashboard = () => {
   };
 
   useEffect(() => {
-    fetchLogs(); // Ekran açıldığında ilk veriyi çek
-
-    // BÜYÜ BURADA: Backend'den "updateDashboard" sinyali geldiği salise veriyi tazele!
-    socket.on('updateDashboard', () => {
-      fetchLogs();
-    });
-
-    return () => {
-      socket.off('updateDashboard');
-    };
+    const token = localStorage.getItem('token');
+    const socket = io(api.defaults.baseURL.replace(/\/api\/?$/, ''), { auth: { token } });
+    fetchLogs();
+    socket.on('updateDashboard', fetchLogs);
+    return () => socket.disconnect();
   }, []);
 
   const getLogStyle = (status) => {
@@ -62,10 +55,16 @@ const LiveDashboard = () => {
 
       <div className="logs-container">
         <div className="logs-header">
-          <span className="radar-icon">⚡</span> CANLI İŞLEM AKIŞI
+          <button type="button" className={view === 'flow' ? 'active' : ''} onClick={() => onView?.('flow')}>
+            İŞLEMLER
+          </button>
+          <button type="button" className={view === 'reservations' ? 'active' : ''} onClick={() => onView?.('reservations')}>
+            REZERVASYONLAR
+          </button>
         </div>
 
-        <ul className="logs-list">
+        <div className={view === 'reservations' ? 'side-pane' : 'side-pane hidden'}>{children}</div>
+        {view === 'flow' && <ul className="logs-list">
           {logs.length === 0 ? (
             <li className="empty-log">Henüz hareket yok...</li>
           ) : (
@@ -80,13 +79,13 @@ const LiveDashboard = () => {
                     <span className="log-personnel">- {log.personnel}</span>
                   </div>
                   <span className={`log-message ${getLogStyle(log.status)}`}>
-                    {log.message}
+                    {String(log.message || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim()}
                   </span>
                 </div>
               </li>
             ))
           )}
-        </ul>
+        </ul>}
       </div>
     </div>
   );

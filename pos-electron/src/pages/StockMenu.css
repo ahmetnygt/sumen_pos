@@ -24,7 +24,7 @@
 
 .header-left h2 {
     margin: 0;
-    color: #d4af37;
+    color: var(--accent);
     font-size: 22px;
     letter-spacing: 1.5px;
 }
@@ -42,8 +42,8 @@
 
 .back-btn:hover {
     background: #222;
-    border-color: #d4af37;
-    color: #d4af37;
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* SEKME (TAB) TASARIMI */
@@ -72,14 +72,21 @@
 }
 
 .tab-bar button.active {
-    background: #d4af37;
-    color: #000;
+    background: var(--accent);
+    color: var(--accent-ink);
 }
 
 .stock-content {
     flex: 1;
     padding: 30px;
     overflow-y: auto;
+    min-height: 0;
+}
+
+.stock-content:has(.menu-split) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* LÜKS TABLO TASARIMI */
@@ -131,8 +138,8 @@
 
 /* Butonlar ve İkonlar */
 .add-btn {
-    background: #d4af37;
-    color: #000;
+    background: var(--accent);
+    color: var(--accent-ink);
     padding: 10px 20px;
     border-radius: 6px;
     font-weight: 700;
@@ -147,11 +154,11 @@
 
 .add-btn-small {
     background: #222;
-    color: #d4af37;
+    color: var(--accent);
     padding: 6px 12px;
     border-radius: 4px;
     font-weight: 700;
-    border: 1px solid #d4af37;
+    border: 1px solid var(--accent);
     cursor: pointer;
     font-size: 12px;
 }
@@ -209,7 +216,7 @@
 .recipe-products h3,
 .products-side h3 {
     margin: 0 0 20px 0;
-    color: #d4af37;
+    color: var(--accent);
     letter-spacing: 1px;
 }
 
@@ -222,6 +229,37 @@
     overflow-y: auto;
 }
 
+.recipe-cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.recipe-cats button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.recipe-cats button.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.recipe-cats .menu-glyph {
+    width: 16px;
+    height: 16px;
+}
+
 .cat-item {
     display: flex;
     justify-content: space-between;
@@ -231,11 +269,296 @@
     border: 1px solid #333;
 }
 
-.cat-item button {
+.menu-split {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    align-items: stretch;
+}
+
+.menu-split .categories-side,
+.menu-split .products-side {
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+}
+
+.menu-split .products-side {
+    display: flex;
+    flex-direction: column;
+}
+
+.pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.pane-head h3 {
+    margin: 0;
+}
+
+.menu-split .cat-list,
+.product-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0;
+}
+
+.product-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: #161616;
+    z-index: 1;
+}
+
+.product-scroll td {
+    vertical-align: middle;
+}
+
+.product-scroll .prod-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 28px;
+}
+
+.product-scroll .prod-cell .prod-mark,
+.product-scroll .prod-cell .menu-glyph {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    color: var(--accent);
+}
+
+.product-scroll .row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.product-scroll .row-actions button {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.product-scroll .row-actions .edit-icon {
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.product-scroll .row-actions .option-manage-btn {
+    color: #ddd;
+    border: 1px solid #555;
+    font-size: 13px;
+}
+
+.product-scroll .row-actions .delete-icon {
+    color: #e63946;
+    border: 1px solid #e63946;
+}
+
+.cat-item {
+    cursor: pointer;
+}
+
+.cat-item.selected {
+    border-color: var(--accent);
+}
+
+.cat-actions button:not(.edit-icon) {
     background: transparent;
     color: #e63946;
     border: none;
     cursor: pointer;
+    font-size: 16px;
+}
+
+.cat-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.cat-item-main .menu-glyph {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+}
+
+.cat-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cat-actions .edit-icon {
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.product-editor {
+    width: min(560px, calc(100vw - 40px));
+}
+
+.prod-mark {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.category-editor {
+    width: min(520px, calc(100vw - 40px));
+    border-color: #2a2a2a;
+    border-radius: 16px;
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    max-height: 240px;
+    overflow: auto;
+    margin-bottom: 16px;
+}
+
+.icon-pick {
+    height: 44px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-pick .menu-glyph {
+    width: 22px;
+    height: 22px;
+}
+
+.icon-pick.selected {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.ghost-btn {
+    background: transparent;
+    color: #ddd;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.photo-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.photo-field .prod-mark,
+.photo-field .menu-glyph {
+    width: 56px;
+    height: 56px;
+    color: var(--accent);
+}
+
+.photo-pick {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.photo-pick input {
+    display: none;
+}
+
+.photo-crop {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.photo-crop p {
+    margin: 0;
+    color: #aaa;
+    font-size: 13px;
+    text-align: center;
+}
+
+.crop-frame {
+    position: relative;
+    width: 448px;
+    max-width: 100%;
+    aspect-ratio: 16 / 10;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #000;
+    border-radius: 8px;
+    touch-action: none;
+    cursor: grab;
+}
+
+.crop-frame img {
+    position: absolute;
+    max-width: none;
+    user-select: none;
+}
+
+.crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ccc;
+    font-size: 13px;
+}
+
+.crop-zoom input {
+    flex: 1;
+}
+
+.crop-use {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.crop-use:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .prod-scroll-list button {
@@ -256,9 +579,9 @@
 }
 
 .prod-scroll-list button.active {
-    background: rgba(212, 175, 55, 0.1);
-    border-color: #d4af37;
-    color: #d4af37;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .recipe-header-row {
@@ -324,7 +647,7 @@
 
 .modal-box h3 {
     margin: 0 0 10px 0;
-    color: #d4af37;
+    color: var(--accent);
     text-align: center;
 }
 
@@ -340,7 +663,7 @@
 
 .modal-box input:focus,
 .modal-box select:focus {
-    border-color: #d4af37;
+    border-color: var(--accent);
     outline: none;
 }
 
@@ -361,8 +684,8 @@
 
 .option-manage-btn {
     background: #222;
-    color: #d4af37;
-    border: 1px solid #d4af37;
+    color: var(--accent);
+    border: 1px solid var(--accent);
     padding: 5px 10px;
     border-radius: 4px;
     font-size: 11px;

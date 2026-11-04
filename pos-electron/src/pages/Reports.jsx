@@ -1,130 +1,192 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import DateTimeField from '../components/DateTimeField';
 import './Reports.css';
 
+const emptySummary = { total: 0, nakit: 0, kart: 0, unsplit: 0, indirim: 0 };
+
 const Reports = () => {
-    const [sales, setSales] = useState([]);
+    const navigate = useNavigate();
+    const [records, setRecords] = useState([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [summary, setSummary] = useState({ total: 0, nakit: 0, kart: 0 });
+    const [summary, setSummary] = useState(emptySummary);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [error, setError] = useState('');
+    const [openId, setOpenId] = useState(null);
+    const limit = 50;
 
-    const fetchReports = async () => {
+    useEffect(() => {
+        const stored = localStorage.getItem('user');
+        const user = stored ? JSON.parse(stored) : null;
+        if (!user || (user.role !== 'Admin' && user.role !== 'Kasa')) {
+            navigate('/dashboard');
+            return;
+        }
+        fetchReports();
+    }, []);
+
+    const fetchReports = async (range = { startDate, endDate }, nextPage = 1) => {
+        setError('');
+        setOpenId(null);
         try {
-            const params = {};
-            if (startDate && endDate) {
-                params.startDate = startDate;
-                params.endDate = endDate;
+            const params = { page: nextPage, limit };
+            if (range.startDate && range.endDate) {
+                params.startDate = range.startDate;
+                params.endDate = range.endDate;
             }
             const response = await api.get('/reports/sales', { params });
-            const data = response.data;
-            setSales(data);
-
-            // Ciro ve Nakit/Kart hesaplaması
-            let t = 0, n = 0, k = 0;
-            data.forEach(item => {
-                const lineTotal = parseFloat(item.price) * item.quantity;
-                t += lineTotal;
-                if (item.Order.payment_method === 'Nakit') n += lineTotal;
-                else if (item.Order.payment_method === 'Kredi Kartı') k += lineTotal;
-                else { n += lineTotal / 2; k += lineTotal / 2; } // Karışık ödemeler için basit bölüştürme
-            });
-            setSummary({ total: t, nakit: n, kart: k });
-
-        } catch (error) {
-            alert('Raporlar alınırken hata oluştu!');
+            setRecords(response.data.records || []);
+            setSummary(response.data.summary || emptySummary);
+            setPage(response.data.page || nextPage);
+            setTotal(response.data.total || 0);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Raporlar alınırken hata oluştu.');
         }
     };
 
-    // Parse options helper
-    const renderOptions = (optString) => {
-        if (!optString) return '-';
-        try {
-            const opts = JSON.parse(optString);
-            return opts.map(o => o.name).join(', ');
-        } catch (e) { return '-'; }
+    const renderOptions = (options) => {
+        if (!options) return '-';
+        let opts = options;
+        if (typeof opts === 'string') {
+            try { opts = JSON.parse(opts); } catch (e) { return '-'; }
+        }
+        if (!Array.isArray(opts) || opts.length === 0) return '-';
+        return opts.map(option => option.name).join(', ');
     };
 
+    const goBack = () => {
+        const stored = localStorage.getItem('user');
+        const user = stored ? JSON.parse(stored) : null;
+        navigate(user?.role === 'Admin' ? '/admin' : '/dashboard');
+    };
+
+    const money = (value) => `${Number(value || 0).toFixed(2)} ₺`;
+    const when = (value) => new Date(value).toLocaleString('tr-TR');
+
     return (
-        <div className="reports-container">
-            <h2 className="text-warning mb-4">Satış & Ciro Raporu</h2>
+        <div className="reports-layout">
+            <header className="reports-header">
+                <div className="reports-header-left">
+                    <button onClick={goBack} className="reports-back">Geri</button>
+                    <h2>SATIŞ & CİRO</h2>
+                </div>
+            </header>
 
-            {/* FİLTRE BÖLÜMÜ */}
-            <div className="filter-bar d-flex gap-3 mb-4 p-3 bg-dark rounded">
-                <div>
-                    <label className="text-muted d-block mb-1"><small>Başlangıç Tarihi/Saati</small></label>
-                    <input
-                        type="datetime-local"
-                        className="form-control bg-secondary text-white border-0"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                    />
+            <main className="reports-content">
+                <div className="reports-filter">
+                    <label>
+                        <span>Başlangıç</span>
+                        <DateTimeField value={startDate} onChange={setStartDate} />
+                    </label>
+                    <label>
+                        <span>Bitiş</span>
+                        <DateTimeField value={endDate} onChange={setEndDate} />
+                    </label>
+                    <button className="reports-filter-btn" onClick={() => fetchReports({ startDate, endDate }, 1)}>Filtrele</button>
                 </div>
-                <div>
-                    <label className="text-muted d-block mb-1"><small>Bitiş Tarihi/Saati</small></label>
-                    <input
-                        type="datetime-local"
-                        className="form-control bg-secondary text-white border-0"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                    />
-                </div>
-                <div className="d-flex align-items-end">
-                    <button className="btn btn-warning px-4" onClick={fetchReports}>
-                        Filtrele
-                    </button>
-                </div>
-            </div>
 
-            {/* ÖZET KARTLARI */}
-            <div className="summary-cards d-flex gap-4 mb-4">
-                <div className="card bg-dark text-white flex-fill p-3 border-warning">
-                    <h5 className="text-muted">Toplam Ciro</h5>
-                    <h2 className="text-warning m-0">{summary.total.toFixed(2)} ₺</h2>
-                </div>
-                <div className="card bg-dark text-white flex-fill p-3 border-success">
-                    <h5 className="text-muted">Nakit Toplamı</h5>
-                    <h2 className="text-success m-0">{summary.nakit.toFixed(2)} ₺</h2>
-                </div>
-                <div className="card bg-dark text-white flex-fill p-3 border-info">
-                    <h5 className="text-muted">Kredi Kartı Toplamı</h5>
-                    <h2 className="text-info m-0">{summary.kart.toFixed(2)} ₺</h2>
-                </div>
-            </div>
+                {error && <p className="reports-error">{error}</p>}
 
-            {/* DETAYLI SATIŞ TABLOSU */}
-            <div className="table-responsive">
-                <table className="table table-dark table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Tarih & Saat</th>
-                            <th>Ürün Adı</th>
-                            <th>Ekstralar (Opsiyon)</th>
-                            <th>Adet</th>
-                            <th>Tutar</th>
-                            <th>Ödeme Yöntemi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sales.map(sale => (
-                            <tr key={sale.id}>
-                                <td>{new Date(sale.Order.updatedAt || sale.Order.updated_at).toLocaleString('tr-TR')}</td>
-                                <td>{sale.Product ? sale.Product.name : 'Silinmiş Ürün'}</td>
-                                <td><small className="text-muted">{renderOptions(sale.selected_options)}</small></td>
-                                <td>{sale.quantity}</td>
-                                <td><strong className="text-white">{(parseFloat(sale.price) * sale.quantity).toFixed(2)} ₺</strong></td>
-                                <td>
-                                    <span className={`badge ${sale.Order.payment_method === 'Nakit' ? 'bg-success' : 'bg-info'}`}>
-                                        {sale.Order.payment_method}
-                                    </span>
-                                </td>
+                <div className="reports-summary">
+                    <div className="reports-card reports-card-total">
+                        <span>Toplam Ciro</span>
+                        <strong>{money(summary.total)}</strong>
+                    </div>
+                    <div className="reports-card reports-card-cash">
+                        <span>Nakit</span>
+                        <strong>{money(summary.nakit)}</strong>
+                    </div>
+                    <div className="reports-card reports-card-card">
+                        <span>Kredi Kartı</span>
+                        <strong>{money(summary.kart)}</strong>
+                    </div>
+                    <div className="reports-card reports-card-discount">
+                        <span>İndirim</span>
+                        <strong>{money(summary.indirim)}</strong>
+                    </div>
+                    {Number(summary.unsplit) > 0 && (
+                        <div className="reports-card reports-card-unsplit">
+                            <span>Ayrıştırılamayan</span>
+                            <strong>{money(summary.unsplit)}</strong>
+                        </div>
+                    )}
+                </div>
+
+                <div className="reports-table-wrap">
+                    <table className="reports-table">
+                        <thead>
+                            <tr>
+                                <th>Tarih & Saat</th>
+                                <th>Kayıt açıklaması</th>
+                                <th>Tutar</th>
+                                <th>Ödeme</th>
                             </tr>
-                        ))}
-                        {sales.length === 0 && (
-                            <tr><td colSpan="6" className="text-center py-4 text-muted">Bu tarih aralığında satış bulunamadı.</td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {records.map(record => (
+                                <React.Fragment key={record.id}>
+                                    <tr
+                                        className={`reports-record ${openId === record.id ? 'open' : ''}`}
+                                        onClick={() => setOpenId(openId === record.id ? null : record.id)}
+                                    >
+                                        <td>{when(record.at)}</td>
+                                        <td>{record.description}</td>
+                                        <td>{money(record.total_amount)}</td>
+                                        <td className="reports-pay-cell">
+                                            {Number(record.nakit) > 0 && <span className="reports-pay cash">Nakit {money(record.nakit)}</span>}
+                                            {Number(record.kart) > 0 && <span className="reports-pay card">Kart {money(record.kart)}</span>}
+                                            {Number(record.discount) > 0 && <span className="reports-pay discount">İndirim {money(record.discount)}</span>}
+                                        </td>
+                                    </tr>
+                                    {openId === record.id && (
+                                        <tr className="reports-detail-row">
+                                            <td colSpan="4">
+                                                <div className="reports-detail">
+                                                    <div>
+                                                        <h4>Tahsilatlar</h4>
+                                                        {record.payments.length === 0 && <p className="reports-muted">Tahsilat kaydı yok.</p>}
+                                                        {record.payments.map(payment => (
+                                                            <div className="reports-detail-line" key={payment.id}>
+                                                                <span>{when(payment.at)}</span>
+                                                                <span className={`reports-pay ${payment.method === 'Nakit' ? 'cash' : 'card'}`}>{payment.method}</span>
+                                                                <strong>{money(payment.amount)}</strong>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div>
+                                                        <h4>Ürünler</h4>
+                                                        {record.items.length === 0 && <p className="reports-muted">Ürün yok.</p>}
+                                                        {record.items.map(item => (
+                                                            <div className="reports-detail-line" key={item.id}>
+                                                                <span>{item.name}</span>
+                                                                <span className="reports-muted">{renderOptions(item.options)}</span>
+                                                                <span>{item.quantity} adet</span>
+                                                                <span>{item.status}</span>
+                                                                <strong>{money(item.line_total)}</strong>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                            {records.length === 0 && (
+                                <tr><td colSpan="4" className="reports-empty">Bu aralıkta kayıt bulunamadı.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="reports-pager">
+                    <button type="button" disabled={page <= 1} onClick={() => fetchReports({ startDate, endDate }, page - 1)}>Önceki</button>
+                    <span>{page} / {Math.max(1, Math.ceil(total / limit))}</span>
+                    <button type="button" disabled={page >= Math.max(1, Math.ceil(total / limit))} onClick={() => fetchReports({ startDate, endDate }, page + 1)}>Sonraki</button>
+                </div>
+            </main>
         </div>
     );
 };

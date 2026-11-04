@@ -10,7 +10,7 @@
 
 .admin-header {
     background: #111;
-    border-bottom: 2px solid #d4af37;
+    border-bottom: 2px solid var(--accent);
     padding: 20px 35px;
     display: flex;
     justify-content: space-between;
@@ -25,7 +25,7 @@
 }
 
 .admin-logo h2 span {
-    color: #d4af37;
+    color: var(--accent);
     font-weight: 900;
 }
 
@@ -44,13 +44,13 @@
 }
 
 .admin-badge {
-    background: rgba(212, 175, 55, 0.1);
-    color: #d4af37;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: 800;
-    border: 1px solid #d4af37;
+    border: 1px solid var(--accent);
 }
 
 .back-kasa-btn {
@@ -66,8 +66,8 @@
 
 .back-kasa-btn:hover {
     background: #222;
-    border-color: #d4af37;
-    color: #d4af37;
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .admin-content {
@@ -106,7 +106,7 @@
 
 .admin-card:hover {
     background: #151515;
-    border-color: #d4af37;
+    border-color: var(--accent);
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
 }
@@ -126,6 +126,22 @@
     color: #eee;
     font-weight: 700;
     letter-spacing: 1px;
+}
+
+.brand-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ccc;
+    font-size: 13px;
+}
+
+.brand-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid #333;
 }
 
 .admin-card p {

@@ -6,14 +6,19 @@ const User = sequelize.define('User', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING, allowNull: false },
     surname: { type: DataTypes.STRING, allowNull: false },
-    user_pin: { type: DataTypes.STRING(4), allowNull: false, unique: true },
-    pass_pin: { type: DataTypes.STRING, allowNull: false }, // Kriptolanacağı için uzunluk sınırı koymuyoruz
-    role: { type: DataTypes.ENUM('Admin', 'Kasa', 'Garson', 'Mutfak'), defaultValue: 'Garson' }
+    user_pin: { type: DataTypes.STRING(4), allowNull: false },
+    pass_pin: { type: DataTypes.STRING, allowNull: false },
+    role: { type: DataTypes.ENUM('SuperAdmin', 'Admin', 'Kasa', 'Garson', 'Mutfak'), defaultValue: 'Garson' },
+    company_id: { type: DataTypes.INTEGER, allowNull: true },
+    branch_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'users',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, fields: ['company_id', 'user_pin'] }
+    ],
     hooks: {
         // BÜTÜN BÜYÜ BURADA: Veritabanına kaydetmeden hemen önce şifreyi kriptola!
         beforeCreate: async (user) => {

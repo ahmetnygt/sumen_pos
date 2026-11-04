@@ -5,4 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './', // BÜTÜN BÜYÜ BURADA: Electron'un dosyaları bulması için bu şart
+  server: {
+    port: 5573,
+    strictPort: true,
+    host: true
+  }
 })

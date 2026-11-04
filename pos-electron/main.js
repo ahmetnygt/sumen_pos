@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron'); // dialog eklendi
 const { autoUpdater } = require('electron-updater'); // BÜYÜ BURADA: Güncelleyici eklendi
-const path = require('path'); // <--- EKSİK OLAN BU!
+const path = require('path');
+const fs = require('fs');
 const escpos = require('escpos');
 escpos.USB = require('escpos-usb');
 escpos.Network = require('escpos-network');
@@ -13,12 +14,13 @@ function createWindow() {
         frame: false,
         kiosk: true,
         title: "Sümen POS",
+        backgroundColor: '#050505',
         icon: path.join(__dirname, 'build/icon.png'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true, // İŞTE BÖYLE OLACAK
             webSecurity: true,
-            allowRunningInsecureContent: true,
+            allowRunningInsecureContent: false,
             preload: path.join(__dirname, 'preload.js')
         }
     });
@@ -26,9 +28,13 @@ function createWindow() {
     // Electron'un uygulamanın paketlenip paketlenmediğini anlama yeteneği
     const isDev = !app.isPackaged;
 
+    win.on('page-title-updated', (event) => {
+        event.preventDefault();
+    });
+
     if (isDev) {
         // GELİŞTİRME MODU: Vite'ın canlı sunucusuna bağlan
-        win.loadURL('http://localhost:5173');
+        win.loadURL('http://localhost:5573');
 
         // Benden sana kıyak: Geliştirici konsolunu da otomatik açsın
         // win.webContents.openDevTools();
@@ -85,12 +91,9 @@ ipcMain.handle('print-receipt', async (event, orderData) => {
     return new Promise((resolve) => {
         try {
             const device = new escpos.USB();
-            
-            // BÜYÜ 1: Çince (GB18030) yerine standart Türkçe/Avrupa (windows-1254) kodlamasına geçtik
             const printer = new escpos.Printer(device, { encoding: "windows-1254" });
             const logoPath = path.join(__dirname, 'logo.png');
 
-            // BÜYÜ 2: Çin malı yazıcıların Türkçe fontu desteklememesi ihtimaline karşı Kurşun Geçirmez Filtre
             const trToEng = (text) => {
                 if (!text) return '';
                 return text.replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
@@ -101,36 +104,30 @@ ipcMain.handle('print-receipt', async (event, orderData) => {
                            .replace(/Ç/g, 'C').replace(/ç/g, 'c');
             };
 
-            escpos.Image.load(logoPath, function (image) {
-
+            const printBody = (image) => {
                 device.open(function (error) {
                     if (error) {
                         console.error("Yazıcıya bağlanılamadı:", error);
                         return resolve({ success: false, message: error.message });
                     }
 
+                    if (image) {
+                        printer.align('ct').raster(image).text('');
+                    }
+
                     printer
-                        .align('ct')
-                        .raster(image)       // Logoyu çak
-                        .text('')
                         .font('b')
                         .size(1, 1)
                         .style('normal')
+                        .align('ct')
                         .text('--------------------------------')
                         .align('lt');
 
-                    // 1. ÜRÜNLER, SEÇENEKLER VE FİYATLAR (Filtreden geçirilmiş)
-                    orderData.items.forEach(item => {
-                        // Ürün Adı
+                    (orderData.items || []).forEach(item => {
                         printer.text(trToEng(`${item.quantity}x ${item.name}`));
-
-                        // Varsa seçenekler FİYATTAN ÖNCE yazsın
-                        if (item.options) {
-                            printer.text(trToEng(`    + ${item.options}`));
-                        }
-
-                        // Fiyat en sağa yaslı şekilde yazsın
-                        printer.align('rt').text(`${item.price * item.quantity} TL`).align('lt');
+                        if (item.options) printer.text(trToEng(`    + ${item.options}`));
+                        const lineTotal = item.lineTotal != null ? item.lineTotal : item.price;
+                        printer.align('rt').text(`${lineTotal} TL`).align('lt');
                     });
 
                     printer
@@ -139,7 +136,6 @@ ipcMain.handle('print-receipt', async (event, orderData) => {
                         .align('rt')
                         .text(trToEng(`ARA TOPLAM: ${orderData.subTotal} TL`));
 
-                    // 2. İNDİRİM SIFIRSA HİÇ YAZMA (Fukara işi durmasın)
                     const indirim = parseFloat(orderData.discount);
                     if (indirim > 0) {
                         printer.text(trToEng(`INDIRIM: - ${indirim.toFixed(2)} TL`));
@@ -158,19 +154,29 @@ ipcMain.handle('print-receipt', async (event, orderData) => {
                         .text(trToEng('teşekkürler!'))
                         .text('')
                         .text(trToEng('Bize puan verin:'))
-                        // 3. QR KOD
-                        .qrimage('https://g.page/r/CRV3iTOcFFHfEBM/review', function (err) {
+                        .qrimage('https://g.page/r/CRV3iTOcFFHfEBM/review', function () {
                             this.text('');
                             this.text('');
                             this.cut();
                             this.beep(1, 2);
                             this.close();
+                            resolve({ success: true, message: "Fiş yazdırıldı" });
                         });
-
-                    resolve({ success: true, message: "Fiş yazdırıldı" });
                 });
-            });
+            };
 
+            if (!fs.existsSync(logoPath)) {
+                printBody(null);
+                return;
+            }
+
+            escpos.Image.load(logoPath, function (image) {
+                if (!image) {
+                    printBody(null);
+                    return;
+                }
+                printBody(image);
+            });
         } catch (err) {
             console.error('Yazdırma motoru patladı:', err);
             resolve({ success: false, message: err.message });

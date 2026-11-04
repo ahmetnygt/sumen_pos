@@ -1,0 +1,73 @@
+html, body, #root {
+    background: #050505;
+    min-height: 100%;
+    color-scheme: dark;
+}
+
+:root {
+    --accent: #d4af37;
+    --accent-ink: #111;
+    --primary-color: var(--accent);
+}
+
+.brand-logo {
+    display: block;
+    height: 48px;
+    width: auto;
+    max-width: 340px;
+    object-fit: contain;
+}
+
+.brand-name {
+    color: var(--accent);
+    font-weight: 900;
+}
+
+.login-header .brand-logo {
+    height: 64px;
+    margin: 0 auto 6px;
+}
+
+.login-header .brand-name {
+    display: block;
+    font-size: 28px;
+    text-align: center;
+}
+
+.logo-area .brand-logo,
+.header-left .brand-logo,
+.kds-header-left .brand-logo {
+    height: 36px;
+}
+
+.logo-area .brand-name {
+    font-size: 24px;
+    letter-spacing: 2px;
+}
+
+.header-left .brand-name {
+    font-size: 22px;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 99px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}

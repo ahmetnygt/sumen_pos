@@ -1,0 +1,105 @@
+.shift-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+    color: #fff;
+}
+
+.shift-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 30px;
+    background: #111;
+    border-bottom: 1px solid #222;
+}
+
+.shift-header h2 {
+    margin: 0;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+}
+
+.shift-back,
+.shift-card button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.shift-card button {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    margin-top: 16px;
+}
+
+.shift-content {
+    padding: 32px;
+    overflow-y: auto;
+}
+
+.shift-card {
+    max-width: 420px;
+    background: #151515;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.shift-card h3 {
+    margin: 0 0 16px;
+}
+
+.shift-card label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #aaa;
+}
+
+.shift-card input {
+    background: #0a0a0a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.shift-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.shift-grid div {
+    background: #151515;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.shift-grid span {
+    display: block;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.shift-grid strong {
+    font-size: 20px;
+    color: var(--accent);
+}
+
+.shift-error {
+    color: #ff6b6b;
+}
+
+.shift-note {
+    color: var(--accent);
+}

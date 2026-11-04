@@ -29,7 +29,8 @@ const Shift = sequelize.define('Shift', {
     status: { 
         type: DataTypes.ENUM('Açık', 'Kapalı'), 
         defaultValue: 'Açık' 
-    }
+    },
+    branch_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'shifts',
     timestamps: true,

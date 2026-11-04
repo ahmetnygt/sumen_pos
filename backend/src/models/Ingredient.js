@@ -6,7 +6,8 @@ const Ingredient = sequelize.define('Ingredient', {
     name: { type: DataTypes.STRING, allowNull: false },
     unit: { type: DataTypes.ENUM('cl', 'adet', 'kg', 'gr', 'lt'), allowNull: false },
     stock_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.00 },
-    critical_level: { type: DataTypes.DECIMAL(10, 2), defaultValue: 10.00 }
+    critical_level: { type: DataTypes.DECIMAL(10, 2), defaultValue: 10.00 },
+    company_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'ingredients',
     timestamps: true,

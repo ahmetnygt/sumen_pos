@@ -1,0 +1,86 @@
+.dt-field {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.dt-date,
+.dt-time {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 15px;
+}
+
+.dt-date {
+    min-width: 180px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dt-date:hover,
+.dt-date:focus,
+.dt-time:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.dt-time {
+    width: 120px;
+}
+
+.dt-time::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.dt-pop {
+    position: fixed;
+    z-index: 80;
+    background: #111;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.dt-pop .rdp-root {
+    --rdp-accent-color: var(--accent);
+    --rdp-accent-background-color: var(--accent);
+    --rdp-day-height: 36px;
+    --rdp-day-width: 36px;
+    --rdp-day_button-height: 34px;
+    --rdp-day_button-width: 34px;
+    --rdp-day_button-border-radius: 8px;
+    --rdp-selected-border: 1px solid var(--accent);
+    --rdp-weekday-opacity: 1;
+    --rdp-outside-opacity: 0.35;
+    --rdp-today-color: var(--accent);
+    color: #fff;
+    font-family: inherit;
+}
+
+.dt-pop .rdp-month_caption,
+.dt-pop .rdp-weekday,
+.dt-pop .rdp-button_next,
+.dt-pop .rdp-button_previous {
+    color: var(--accent);
+}
+
+.dt-pop .rdp-day_button {
+    color: #fff;
+}
+
+.dt-pop .rdp-selected .rdp-day_button {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+}
+
+.dt-pop .rdp-today:not(.rdp-selected) .rdp-day_button {
+    color: var(--accent);
+}

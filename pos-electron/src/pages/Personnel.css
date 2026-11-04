@@ -24,7 +24,7 @@
 
 .header-left h2 {
     margin: 0;
-    color: #d4af37;
+    color: var(--accent);
     font-size: 22px;
     letter-spacing: 1.5px;
 }
@@ -44,9 +44,9 @@
 }
 
 .badge-admin {
-    background: rgba(212, 175, 55, 0.1);
-    color: #d4af37;
-    border: 1px solid #d4af37;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    border: 1px solid var(--accent);
 }
 
 .badge-kasa {
@@ -95,7 +95,7 @@
 
 .hr-modal-box h3 {
     margin: 0 0 5px 0;
-    color: #d4af37;
+    color: var(--accent);
     text-align: center;
 }
 
@@ -112,14 +112,14 @@
 
 .hr-modal-box input:focus,
 .hr-modal-box select:focus {
-    border-color: #d4af37;
+    border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .submit-btn {
-    background: #d4af37;
-    color: #000;
+    background: var(--accent);
+    color: var(--accent-ink);
     padding: 15px;
     border: none;
     border-radius: 6px;
@@ -132,6 +132,22 @@
 
 .submit-btn:hover {
     background: #eadd7a;
+}
+
+.edit-icon,
+.delete-icon {
+    background: transparent;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.edit-icon {
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 .form-group-row {

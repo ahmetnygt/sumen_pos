@@ -1,92 +1,291 @@
-/* Reports.css - Sümen POS Rapor Ekranı Stilleri */
-
-.reports-container {
-    padding: 20px;
-    color: black;
-    min-height: 100vh;
-    background-color: transparent;
+.reports-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+    color: #fff;
+    overflow: hidden;
 }
 
-/* Filtreleme Çubuğu */
-.filter-bar {
-    background-color: #1e1e1e !important;
-    border: 1px solid #333;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+.reports-header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 20px 30px;
+    display: flex;
+    align-items: center;
 }
 
-.filter-bar input[type="datetime-local"] {
-    background-color: #2c2c2c !important;
-    color: #fff !important;
-    border: 1px solid #444 !important;
+.reports-header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.reports-header h2 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 22px;
+    letter-spacing: 1.5px;
+}
+
+.reports-back {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 10px 18px;
     border-radius: 6px;
-    padding: 10px 12px;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-/* Takvim ikonunu karanlık temaya uydur (beyaz yap) */
-.filter-bar input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+.reports-back:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.reports-content {
+    padding: 32px 40px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.reports-filter {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 24px;
+}
+
+.reports-filter label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #888;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.reports-filter input {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: inherit;
+}
+
+.reports-filter input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.reports-filter input::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
 }
 
-.filter-bar input[type="datetime-local"]:focus {
-    outline: none;
-    border-color: var(--warning-color, #ffc107) !important;
-    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.25);
+.reports-filter-btn {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 22px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
-/* Özet Kartları (Ciro, Nakit, Kart) */
-.summary-cards .card {
-    background-color: #1e1e1e !important;
-    border-width: 0 0 0 4px !important;
-    /* Sadece sol tarafa kalın çizgi */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+.reports-filter-btn:hover {
+    background: #eadd7a;
 }
 
-.summary-cards .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+.reports-error {
+    color: #e63946;
+    margin: 0 0 16px;
 }
 
-/* Tablo Konteyneri */
-.table-responsive {
-    background-color: #1e1e1e;
+.reports-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.reports-card {
+    flex: 1;
+    background: #111;
+    border: 1px solid #222;
+    border-left-width: 4px;
     border-radius: 8px;
-    padding: 15px;
-    border: 1px solid #333;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-/* Karanlık Tablo Ayarları */
-.table-dark {
-    --bs-table-bg: transparent;
-    margin-bottom: 0;
-}
-
-.table-dark th {
-    color: #a0a0a0;
-    font-weight: 600;
-    border-bottom: 1px solid #444;
-    padding-bottom: 15px;
-    text-transform: uppercase;
-    font-size: 0.85rem;
+.reports-card span {
+    color: #888;
+    font-size: 13px;
     letter-spacing: 0.5px;
 }
 
-.table-dark td {
+.reports-card strong {
+    font-size: 28px;
+}
+
+.reports-card-total { border-left-color: var(--accent); }
+.reports-card-total strong { color: var(--accent); }
+.reports-card-cash { border-left-color: #2ecc71; }
+.reports-card-cash strong { color: #2ecc71; }
+.reports-card-card { border-left-color: #3498db; }
+.reports-card-card strong { color: #3498db; }
+.reports-card-discount { border-left-color: #ffc107; }
+.reports-card-discount strong { color: #ffc107; }
+.reports-card-unsplit { border-left-color: #e67e22; }
+.reports-card-unsplit strong { color: #e67e22; }
+
+.reports-table-wrap {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 8px 12px 16px;
+}
+
+.reports-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.reports-table th {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 15px 10px;
     border-bottom: 1px solid #333;
-    vertical-align: middle;
-    padding: 12px 8px;
 }
 
-.table-dark tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.03) !important;
+.reports-table th:last-child {
+    text-align: right;
 }
 
-/* Etiketler (Badge) */
-.badge {
-    font-size: 0.85rem;
+.reports-table td {
+    padding: 15px 10px;
+    border-bottom: 1px solid #222;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.reports-record {
+    cursor: pointer;
+}
+
+.reports-pay-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.reports-table tbody tr.reports-record:hover,
+.reports-record.open {
+    background: #1a1a1a;
+}
+
+.reports-detail-row td {
+    background: #0d0d0d;
+    padding-top: 8px;
+}
+
+.reports-detail {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 24px;
+}
+
+.reports-detail h4 {
+    margin: 0 0 10px;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.6px;
+}
+
+.reports-detail-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+}
+
+.reports-detail-line strong {
+    margin-left: auto;
+}
+
+.reports-muted {
+    color: #888;
+}
+
+.reports-empty {
+    text-align: center;
+    color: #666;
+    padding: 28px 10px;
+}
+
+.reports-pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 4px 8px;
+}
+
+.reports-pager button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.reports-pager button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.reports-pay {
+    display: inline-block;
     padding: 6px 10px;
     border-radius: 4px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    border: 1px solid #444;
+}
+
+.reports-pay.cash {
+    color: #2ecc71;
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.reports-pay.card {
+    color: #3498db;
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.reports-pay.mixed {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.reports-pay.discount {
+    color: #ffc107;
+    border-color: #ffc107;
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.reports-pay + .reports-pay {
+    margin-left: 6px;
 }

@@ -20,9 +20,9 @@
 .time-display {
     font-size: 42px;
     font-weight: 900;
-    color: #d4af37;
+    color: var(--accent);
     letter-spacing: 2px;
-    text-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+    text-shadow: 0 0 15px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .date-display {
@@ -44,7 +44,7 @@
 }
 
 .logs-header {
-    padding: 15px 20px;
+    padding: 0;
     background: #111;
     border-bottom: 1px solid #222;
     color: #eee;
@@ -52,12 +52,52 @@
     font-weight: 800;
     letter-spacing: 1.5px;
     display: flex;
+    align-items: stretch;
+}
+
+.logs-header button {
+    flex: 1;
+    background: transparent;
+    color: #666;
+    border: none;
+    border-radius: 0;
+    padding: 15px 8px;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
+.logs-header button + button {
+    border-left: 1px solid #222;
+}
+
+.logs-header button.active {
+    color: #eee;
+}
+
+.logs-header button:not(.active) .radar-icon {
+    animation: none;
+    opacity: 0.45;
+}
+
+.side-pane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.side-pane.hidden {
+    display: none;
+}
+
 .radar-icon {
-    color: #d4af37;
+    color: var(--accent);
     font-size: 16px;
     animation: pulse-icon 2s infinite;
 }
@@ -180,5 +220,5 @@
 }
 
 .log-discount {
-    color: #d4af37;
+    color: var(--accent);
 }

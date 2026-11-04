@@ -14,7 +14,9 @@ const OrderItem = sequelize.define('OrderItem', {
         allowNull: true
     },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    status: { type: DataTypes.ENUM('Siparişte', 'Hazır', 'Ödendi', 'İptal'), defaultValue: 'Siparişte' }
+    status: { type: DataTypes.ENUM('Siparişte', 'Hazır', 'Ödendi', 'İptal'), defaultValue: 'Siparişte' },
+    served_at: { type: DataTypes.DATE, allowNull: true },
+    branch_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'order_items',
     timestamps: true,

@@ -28,7 +28,7 @@ const AdminPanel = () => {
             <header className="admin-header">
                 <div className="admin-logo">
                     <h2>LUX <span>MERKEZ KOMUTA</span></h2>
-                    <p>Yönetim ve Raporlama Paneli</p>
+                    <p>{user?.company_name || 'Yönetim ve Raporlama Paneli'}</p>
                 </div>
                 <div className="admin-actions">
                     <span className="admin-badge">Yetki: PATRON</span>
@@ -54,10 +54,16 @@ const AdminPanel = () => {
                         <p>Günlük/Aylık ciro, en çok satanlar, iskonto analizleri.</p>
                     </div>
 
-                    <div className="admin-card" onClick={() => alert('Vardiya Sistemi yazılacak')}>
+                    <div className="admin-card" onClick={() => navigate('/shift')}>
                         <div className="card-icon">🕒</div>
                         <h4>Vardiya (Shift)</h4>
                         <p>Kasa açılış/kapanış, personel mesai ve açık/fazla takibi.</p>
+                    </div>
+
+                    <div className="admin-card" onClick={() => navigate('/branches')}>
+                        <div className="card-icon">🏪</div>
+                        <h4>Şubeler</h4>
+                        <p>Firma şubelerini ekle, kodlarını ve durumlarını yönet.</p>
                     </div>
 
                     <div className="admin-card" onClick={() => navigate('/personnel')}>

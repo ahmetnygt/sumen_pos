@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import './scrollbar.css'
 // import './index.css'  <-- BU SATIRI SİLDİK / YORUMA ALDIK
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import './Order.css'; 
+import { MenuGlyph, ProductMark } from '../components/menuIcons';
+import StockWarn, { shortagesFor, stockShortages } from '../components/StockWarn';
+import './Order.css';
+
+function shortageText(rows) {
+    return (rows || []).map(row => row.name).filter(Boolean).join(', ');
+}
+
+function parseOptionList(value) {
+    let current = value;
+    for (let i = 0; i < 2 && typeof current === 'string'; i += 1) {
+        try { current = JSON.parse(current); } catch (error) { return []; }
+    }
+    return Array.isArray(current) ? current : [];
+}
 
 const WaiterOrder = () => {
     const { tableId } = useParams();
@@ -9,6 +23,8 @@ const WaiterOrder = () => {
     const orderListRef = useRef(null);
 
     const [menu, setMenu] = useState([]);
+    const [availability, setAvailability] = useState({ products: {}, options: {} });
+    const busy = useRef(false);
     const [activeCategoryId, setActiveCategoryId] = useState(null);
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -19,6 +35,7 @@ const WaiterOrder = () => {
     const [activeOptions, setActiveOptions] = useState([]);
 
     const [pendingItems, setPendingItems] = useState([]);
+    const [stockWarn, setStockWarn] = useState(null);
     const [showCheckout, setShowCheckout] = useState(false);
     const [payAmount, setPayAmount] = useState('');
     const [selectedQuantities, setSelectedQuantities] = useState({});
@@ -82,10 +99,13 @@ const WaiterOrder = () => {
     // Ödeme API İsteği
     const handlePayment = async (method) => {
         setModalError('');
-        const amount = parseFloat(payAmount || remaining);
-        if (amount <= 0 || isNaN(amount) || amount > remaining + 0.01) {
+        const closingZero = remaining <= 0.01;
+        const amount = closingZero ? 0 : parseFloat(payAmount || remaining);
+        if (!closingZero && (Number.isNaN(amount) || amount <= 0 || amount > remaining + 0.01)) {
             setModalError('Geçerli bir tutar giriniz!'); return;
         }
+        if (busy.current) return;
+        busy.current = true;
 
         const paidItemsArray = Object.entries(selectedQuantities)
             .filter(([id, qty]) => qty > 0)
@@ -101,68 +121,90 @@ const WaiterOrder = () => {
             } else {
                 setPayAmount(''); setSelectedQuantities({}); fetchData();
             }
-        } catch (error) { setModalError('Ödeme başarısız!'); }
+        } catch (error) { setModalError(error.response?.data?.message || 'Ödeme başarısız!'); }
+        finally { busy.current = false; }
     };
 
     // --- YENİ: İNDİRİM MOTORU ---
     const handleApplyDiscount = async () => {
         setModalError('');
+        const unpaidBase = totalAmount - paidAmount;
         const val = parseFloat(discountValue);
         if (!val || val <= 0) { setModalError('Geçerli bir iskonto değeri girin!'); return; }
 
         let calculatedDiscount = val;
-        if (discountType === 'percent') calculatedDiscount = remaining * (val / 100);
+        if (discountType === 'percent') {
+            if (val > 100) { setModalError('İskonto yüzdesi 100’den büyük olamaz!'); return; }
+            calculatedDiscount = unpaidBase * (val / 100);
+        }
 
-        if (calculatedDiscount <= 0 || calculatedDiscount > remaining + 0.01) {
-            setModalError('İskonto tutarı kalan hesaptan büyük olamaz!'); return;
+        if (calculatedDiscount <= 0 || calculatedDiscount > unpaidBase + 0.01) {
+            setModalError('İskonto tutarı ödenmemiş tutardan büyük olamaz!'); return;
         }
 
         try {
-            const res = await api.post(`/orders/table/${tableId}/discount`, { type: discountType, value: discountValue });
+            await api.post(`/orders/table/${tableId}/discount`, { type: discountType, value: discountValue });
             setDiscountValue('');
-            if (res.data.isFullyPaid) {
-                setShowCheckout(false); navigate('/waiter-dashboard');
-            } else {
-                fetchData(); setPayAmount((remaining - calculatedDiscount).toFixed(2));
-            }
-        } catch (error) { setModalError('İskonto uygulanamadı!'); }
+            const nextRemaining = unpaidBase - calculatedDiscount;
+            fetchData();
+            setPayAmount(nextRemaining > 0.01 ? nextRemaining.toFixed(2) : '0.00');
+        } catch (error) { setModalError(error.response?.data?.message || 'İskonto uygulanamadı!'); }
     };
 
     const handleRemoveDiscount = async () => {
         try {
-            await api.post(`/orders/table/${tableId}/discount`, { type: 'amount', value: -(parseFloat(order?.discount_amount) || 0) });
+            await api.post(`/orders/table/${tableId}/discount`, { type: 'amount', value: 0 });
             fetchData();
-        } catch (error) { alert('İskonto silinemedi!'); }
+            setPayAmount(Math.max(0, totalAmount - paidAmount).toFixed(2));
+        } catch (error) { alert(error.response?.data?.message || 'İskonto silinemedi!'); }
     };
 
-    const handleFastSaleCheckout = async (method) => {
-        if (pendingItems.length === 0) return;
+    const fastSaleItems = () => pendingItems.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        optionIds: (item.selectedOptions || []).map(opt => opt.id)
+    }));
+
+    const handleFastSaleCheckout = async (method, forceShort = false) => {
+        if (pendingItems.length === 0 || busy.current) return;
+        busy.current = true;
         try {
-            const cleanItems = pendingItems.map(item => ({
-                productId: item.id,
-                price: item.basePrice || item.price,
-                quantity: item.quantity,
-                selectedOptions: item.selectedOptions || [] // Başında item. var!
-            }));
-            await api.post('/orders/fast-sale', { items: cleanItems, isPaid: true, paymentMethod: method });
+            await api.post('/orders/fast-sale', {
+                items: fastSaleItems(), isPaid: true, paymentMethod: method,
+                confirmShortage: forceShort || pendingItems.some(item => item.allowShort)
+            });
             setPendingItems([]);
             navigate('/waiter-dashboard');
-        } catch (error) { alert('Hata: ' + (error.response?.data?.message || error.message)); }
+        } catch (error) {
+            const shortages = stockShortages(error);
+            if (shortages) {
+                setStockWarn({ rows: shortages, sale: () => handleFastSaleCheckout(method, true) });
+                return;
+            }
+            alert('Hata: ' + (error.response?.data?.message || error.message));
+        }
+        finally { busy.current = false; }
     };
 
-    const handleSendFastSale = async () => {
-        if (pendingItems.length === 0) return;
+    const handleSendFastSale = async (forceShort = false) => {
+        if (pendingItems.length === 0 || busy.current) return;
+        busy.current = true;
         try {
-            const cleanItems = pendingItems.map(item => ({
-                productId: item.id,
-                price: item.basePrice || item.price,
-                quantity: item.quantity,
-                selectedOptions: item.selectedOptions || [] // Başında item. var!
-            }));
-            await api.post('/orders/fast-sale', { items: cleanItems, isPaid: false });
+            await api.post('/orders/fast-sale', {
+                items: fastSaleItems(), isPaid: false,
+                confirmShortage: forceShort || pendingItems.some(item => item.allowShort)
+            });
             setPendingItems([]);
             navigate('/waiter-dashboard');
-        } catch (error) { alert('Hata: ' + (error.response?.data?.message || error.message)); }
+        } catch (error) {
+            const shortages = stockShortages(error);
+            if (shortages) {
+                setStockWarn({ rows: shortages, sale: () => handleSendFastSale(true) });
+                return;
+            }
+            alert('Hata: ' + (error.response?.data?.message || error.message));
+        }
+        finally { busy.current = false; }
     };
 
     useEffect(() => {
@@ -177,8 +219,12 @@ const WaiterOrder = () => {
 
     const fetchData = async () => {
         try {
-            const menuRes = await api.get('/menu');
+            const [menuRes, availRes] = await Promise.all([
+                api.get('/menu'),
+                api.get('/menu/availability').catch(() => ({ data: { products: {}, options: {} } }))
+            ]);
             setMenu(menuRes.data || []);
+            setAvailability(availRes.data || { products: {}, options: {} });
             if (menuRes.data && menuRes.data.length > 0 && !activeCategoryId) {
                 setActiveCategoryId(menuRes.data[0].id);
             }
@@ -197,7 +243,7 @@ const WaiterOrder = () => {
         }
     };
 
-    const handleStageItem = (product, selectedOptions = []) => {
+    const handleStageItem = (product, selectedOptions = [], allowShort = false) => {
         // 1. Ekstra fiyatları hesapla
         const extraPrice = selectedOptions.reduce((sum, opt) => sum + parseFloat(opt.price_diff || 0), 0);
         const basePrice = parseFloat(product.price || 0);
@@ -212,7 +258,7 @@ const WaiterOrder = () => {
             if (existing) {
                 return prev.map(item =>
                     item.uniqueId === uniqueId
-                        ? { ...item, quantity: item.quantity + 1, lineTotal: item.lineTotal + finalUnitPrice }
+                        ? { ...item, quantity: item.quantity + 1, lineTotal: item.lineTotal + finalUnitPrice, allowShort: item.allowShort || allowShort }
                         : item
                 );
             }
@@ -222,9 +268,27 @@ const WaiterOrder = () => {
                 quantity: 1,
                 lineTotal: finalUnitPrice,
                 basePrice: basePrice, // Asıl ürünü yollarken lazım
-                selectedOptions // BÜYÜ BURADA: Backend'e yollayacağımız ekstralar
+                selectedOptions, // BÜYÜ BURADA: Backend'e yollayacağımız ekstralar
+                allowShort
             }];
         });
+    };
+
+    const stageOrWarn = (product, selectedOptions = []) => {
+        const rows = shortagesFor(availability, product, selectedOptions);
+        if (rows.length) {
+            setStockWarn({ product, selectedOptions, rows });
+            return;
+        }
+        handleStageItem(product, selectedOptions, false);
+    };
+
+    const acceptStockWarn = () => {
+        const warn = stockWarn;
+        setStockWarn(null);
+        if (!warn) return;
+        if (warn.sale) warn.sale();
+        else handleStageItem(warn.product, warn.selectedOptions, true);
     };
 
     // Menüden bir ürüne tıklandığında çalışır
@@ -236,7 +300,7 @@ const WaiterOrder = () => {
             setShowModal(true);
         } else {
             // Hiçbir grubu yoksa mermi gibi direkt sepete at!
-            handleStageItem(product, []);
+            stageOrWarn(product, []);
         }
     };
 
@@ -274,9 +338,11 @@ const WaiterOrder = () => {
 
     // Pop-up'ta "Sepete Ekle" butonuna basınca
     const confirmOptionsAndAdd = () => {
-        handleStageItem(selectedProductForModal, activeOptions);
+        const product = selectedProductForModal;
+        const options = activeOptions;
         setShowModal(false);
         setSelectedProductForModal(null);
+        stageOrWarn(product, options);
     };
 
     const handleRemovePending = (uniqueId) => {
@@ -294,29 +360,36 @@ const WaiterOrder = () => {
         });
     };
 
-    const handleSendPendingOrders = async () => {
-        if (pendingItems.length === 0) return;
+    const handleSendPendingOrders = async (forceShort = false) => {
+        if (pendingItems.length === 0 || busy.current) return;
+        busy.current = true;
         try {
-            // BÜYÜ BURADA: Promise.all YERİNE for...of KULLANIYORUZ (Sırayla ve Güvenle)
-            for (const item of pendingItems) {
-                await api.post(`/orders/table/${tableId}/add-item`, {
-                    productId: item.id,
-                    price: item.basePrice, // Ürünün ham fiyatını yolla
-                    quantity: item.quantity,
-                    selectedOptions: item.selectedOptions // Seçenekleri yolla
-                });
-            }
+            const items = pendingItems.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                optionIds: (item.selectedOptions || []).map(opt => opt.id)
+            }));
+            await api.post(`/orders/table/${tableId}/items`, {
+                items,
+                confirmShortage: forceShort || pendingItems.some(item => item.allowShort)
+            });
             setPendingItems([]);
             fetchData();
         } catch (error) {
+            const shortages = stockShortages(error);
+            if (shortages) {
+                setStockWarn({ rows: shortages, sale: () => handleSendPendingOrders(true) });
+                return;
+            }
             alert('Siparişler gönderilemedi! Hata: ' + (error.response?.data?.message || error.message));
-        }
+        } finally { busy.current = false; }
     };
 
-    const handleCancelItem = async (itemId) => {
-        if (!window.confirm('Bu siparişi adisyondan silmek istediğine emin misin?')) return;
+    const handleCancelItem = async (itemIds) => {
+        const ids = (Array.isArray(itemIds) ? itemIds : [itemIds]).filter(Boolean);
+        if (!ids.length || !window.confirm('Bu siparişi adisyondan silmek istediğine emin misin?')) return;
         try {
-            await api.delete(`/orders/item/${itemId}`);
+            await api.post('/orders/items/cancel', { itemIds: ids });
             fetchData();
         } catch (error) {
             alert('İptal başarısız! Hata: ' + (error.response?.data?.message || error.message));
@@ -330,29 +403,22 @@ const WaiterOrder = () => {
 
     const pendingTotal = pendingItems.reduce((acc, item) => acc + (item.lineTotal || 0), 0);
     const totalAmount = parseFloat(order?.total_amount || 0);
-    const remaining = Math.max(0, totalAmount - parseFloat(order?.paid_amount || 0) - parseFloat(order?.discount_amount || 0));
+    const paidAmount = parseFloat(order?.paid_amount || 0);
+    const discountAmount = parseFloat(order?.discount_amount || 0);
+    const unpaidBase = totalAmount - paidAmount;
+    const remaining = Math.max(0, unpaidBase - discountAmount);
 
     const orderItemsSafe = order?.OrderItems || [];
     const groupedOrderItems = order?.OrderItems?.reduce((acc, item) => {
         // 1. AŞAMA (GÜVENLİK DUVARI): Veritabanından gelen veriyi zorla Array'e (Diziye) çevir!
-        let parsedOptions = [];
-        try {
-            if (typeof item.selected_options === 'string') {
-                parsedOptions = JSON.parse(item.selected_options);
-            } else if (Array.isArray(item.selected_options)) {
-                parsedOptions = item.selected_options;
-            }
-        } catch (e) {
-            parsedOptions = []; // Bozuksa bile boş dizi yap, sistemi çökertmesin
-        }
-        item.selected_options = parsedOptions; // Temizlenmiş diziyi item'ın içine geri koy
+        const parsedOptions = parseOptionList(item.selected_options);
+        item.selected_options = parsedOptions;
 
-        // 2. AŞAMA: Gruplama anahtarını oluştur
-        const optsKey = item.selected_options.length > 0 ? JSON.stringify(item.selected_options) : '';
+        const optsKey = parsedOptions.map(opt => opt.id).filter(id => id != null).sort((a, b) => a - b).join(',');
         const key = `${item.product_id}-${item.status}-${optsKey}`;
 
-        // 3. AŞAMA: Adisyondaki miktarları ve fiyatları topla
-        if (!acc[key]) acc[key] = { ...item, totalQty: 0, sumPrice: 0 };
+        if (!acc[key]) acc[key] = { ...item, totalQty: 0, sumPrice: 0, itemIds: [] };
+        acc[key].itemIds.push(item.id);
         acc[key].totalQty += item.quantity || 1;
         acc[key].sumPrice += parseFloat(item.price || 0) * (item.quantity || 1);
 
@@ -367,7 +433,7 @@ const WaiterOrder = () => {
             <div className="receipt-panel">
                 <div className="receipt-header">
                     <h2 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '20px' }}>
-                        {tableId === 'fast' ? '⚡ HIZLI KASA (GEL-AL)' : `Masa ${tableId}`}
+                        {tableId === 'fast' ? '⚡ HIZLI KASA (GEL-AL)' : (order?.table_name || 'Masa')}
                     </h2>
                     <button className="close-panel-btn" onClick={() => navigate('/waiter-dashboard')}>GERİ DÖN</button>
                 </div>
@@ -389,7 +455,7 @@ const WaiterOrder = () => {
                                                 {gItem.status === 'Ödendi' && <span className="paid-badge-small">ÖDENDİ</span>}
                                             </div>
                                             {Array.isArray(gItem.selected_options) && gItem.selected_options.length > 0 && (
-                                                <div style={{ fontSize: '11px', color: gItem.status === 'Ödendi' ? '#555' : '#d4af37', paddingLeft: '10px' }}>
+                                                <div style={{ fontSize: '11px', color: gItem.status === 'Ödendi' ? '#555' : 'var(--accent)', paddingLeft: '10px' }}>
                                                     ↳ + {gItem.selected_options.map(o => o.name).join(', ')}
                                                 </div>
                                             )}
@@ -398,7 +464,7 @@ const WaiterOrder = () => {
                                             <strong style={{ color: gItem.status === 'Ödendi' ? '#555' : 'var(--text-muted)', textDecoration: gItem.status === 'Ödendi' ? 'line-through' : 'none' }}>
                                                 ₺{gItem.sumPrice.toFixed(2)}
                                             </strong>
-                                            {gItem.status !== 'Ödendi' && <button className="cancel-btn-small" onClick={() => handleCancelItem(gItem.id)}>✕</button>}
+                                            {gItem.status !== 'Ödendi' && <button className="cancel-btn-small" onClick={() => handleCancelItem(gItem.itemIds || [gItem.id])}>✕</button>}
                                         </div>
                                     </li>
                                 ))}
@@ -415,7 +481,7 @@ const WaiterOrder = () => {
                                                 <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{item.quantity}x {item.name}</span>
                                                 {/* Sepete (Yeni Eklenenlere) eklenen seçenekler */}
                                                 {item.selectedOptions && item.selectedOptions.length > 0 && (
-                                                    <div style={{ fontSize: '11px', color: '#d4af37', paddingLeft: '10px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--accent)', paddingLeft: '10px' }}>
                                                         ↳ + {item.selectedOptions.map(o => o.name).join(', ')}
                                                     </div>
                                                 )}
@@ -461,14 +527,23 @@ const WaiterOrder = () => {
             <div className="menu-panel">
                 <div className="category-slider">
                     {menu.map(cat => (
-                        <button key={cat.id} className={`cat-btn ${activeCategoryId === cat.id ? 'active' : ''}`} onClick={() => setActiveCategoryId(cat.id)}>{cat.name}</button>
+                        <button key={cat.id} className={`cat-btn ${activeCategoryId === cat.id ? 'active' : ''}`} onClick={() => setActiveCategoryId(cat.id)}>
+                            <MenuGlyph name={cat.icon} />
+                            {cat.name}
+                        </button>
                     ))}
                 </div>
                 <div className="product-grid">
                     {getActiveProducts().map(prod => (
                         <button key={prod.id} className="prod-btn" onClick={() => handleProductClick(prod)}>
+                            <span className="prod-visual">
+                                <ProductMark photo={prod.photo} icon={menu.find(cat => cat.id === activeCategoryId)?.icon} />
+                            </span>
                             <span className="prod-name">{prod.name}</span>
                             <span className="prod-price">₺{parseFloat(prod.price).toFixed(2)}</span>
+                            {shortageText(availability.products?.[prod.id]) && (
+                                <span style={{ color: '#ff6b6b', fontSize: '11px' }}>Stok yok: {shortageText(availability.products[prod.id])}</span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -509,7 +584,7 @@ const WaiterOrder = () => {
                                                         transition: '0.2s'
                                                     }}
                                                 >
-                                                    <span>{opt.name}</span>
+                                                    <span>{opt.name}{shortageText(availability.options?.[opt.id]) ? ` · Stok yok: ${shortageText(availability.options[opt.id])}` : ''}</span>
                                                     <span className="option-price">
                                                         {parseFloat(opt.price_diff) > 0 ? `+₺${opt.price_diff}` : '₺0.00'}
                                                     </span>
@@ -533,8 +608,8 @@ const WaiterOrder = () => {
                                 style={{
                                     opacity: isSelectionValid() ? 1 : 0.4,
                                     cursor: isSelectionValid() ? 'pointer' : 'not-allowed',
-                                    background: isSelectionValid() ? '#d4af37' : '#555',
-                                    color: isSelectionValid() ? '#000' : '#888'
+                                    background: isSelectionValid() ? 'var(--accent)' : '#555',
+                                    color: isSelectionValid() ? 'var(--accent-ink)' : '#888'
                                 }}
                             >
                                 {isSelectionValid() ? 'Siparişe Ekle' : 'Seçimleri Tamamlayın'}
@@ -584,8 +659,8 @@ const WaiterOrder = () => {
                             {/* YENİ: İSKONTO ALANI */}
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', background: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                    <button onClick={() => setDiscountType('amount')} style={{ padding: '8px 12px', background: discountType === 'amount' ? '#d4af37' : '#333', color: discountType === 'amount' ? '#000' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>₺</button>
-                                    <button onClick={() => setDiscountType('percent')} style={{ padding: '8px 12px', background: discountType === 'percent' ? '#d4af37' : '#333', color: discountType === 'percent' ? '#000' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>%</button>
+                                    <button onClick={() => setDiscountType('amount')} style={{ padding: '8px 12px', background: discountType === 'amount' ? 'var(--accent)' : '#333', color: discountType === 'amount' ? 'var(--accent-ink)' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>₺</button>
+                                    <button onClick={() => setDiscountType('percent')} style={{ padding: '8px 12px', background: discountType === 'percent' ? 'var(--accent)' : '#333', color: discountType === 'percent' ? 'var(--accent-ink)' : '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>%</button>
                                 </div>
                                 <input
                                     type="number"
@@ -593,7 +668,7 @@ const WaiterOrder = () => {
                                     value={discountValue}
                                     onChange={(e) => { setDiscountValue(e.target.value); setActiveInput('discount'); }}
                                     onFocus={() => setActiveInput('discount')}
-                                    style={{ flex: 1, background: '#000', color: '#fff', border: activeInput === 'discount' ? '1px solid #d4af37' : '1px solid #333', borderRadius: '4px', padding: '8px', textAlign: 'center', fontSize: '16px' }}
+                                    style={{ flex: 1, background: '#000', color: '#fff', border: activeInput === 'discount' ? '1px solid var(--accent)' : '1px solid #333', borderRadius: '4px', padding: '8px', textAlign: 'center', fontSize: '16px' }}
                                 />
                                 <button onClick={handleApplyDiscount} style={{ background: '#e63946', color: '#fff', border: 'none', borderRadius: '4px', padding: '0 15px', fontWeight: 'bold' }}>DÜŞ</button>
                             </div>
@@ -631,6 +706,7 @@ const WaiterOrder = () => {
                     </div>
                 </div>
             )}
+            <StockWarn warn={stockWarn} onCancel={() => setStockWarn(null)} onConfirm={acceptStockWarn} />
         </div>
     );
 };

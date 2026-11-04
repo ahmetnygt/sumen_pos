@@ -1,0 +1,486 @@
+.branches-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+    color: #fff;
+    overflow: hidden;
+}
+
+.branches-header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 20px 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.branches-header h2 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 22px;
+    letter-spacing: 1.5px;
+}
+
+.branches-back {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.branches-back:hover {
+    background: #222;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.branches-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 24px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.branches-card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.branches-card h3 {
+    margin: 0 0 16px;
+    color: var(--accent);
+    font-size: 16px;
+    letter-spacing: 1px;
+}
+
+.branches-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.branches-form input {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 15px;
+    min-width: 0;
+}
+
+.branches-form input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.branches-form input.name {
+    flex: 1;
+}
+
+.branches-form input.code {
+    width: 120px;
+}
+
+.branches-submit {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.branches-submit:hover {
+    background: #eadd7a;
+}
+
+.branches-error {
+    color: #e63946;
+    margin: 0;
+}
+
+.branches-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.branches-table th {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 10px;
+    border-bottom: 1px solid #333;
+}
+
+.branches-table td {
+    padding: 14px 10px;
+    border-bottom: 1px solid #222;
+    font-size: 15px;
+}
+
+.branches-table tbody tr:hover {
+    background: #1a1a1a;
+}
+
+.branches-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.branches-status.active {
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+}
+
+.branches-status.passive {
+    color: #888;
+    border: 1px solid #444;
+}
+
+.branches-ghost,
+.branches-danger {
+    background: transparent;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.branches-ghost {
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    margin-right: 8px;
+}
+
+.branches-danger {
+    color: #fff;
+    border: 1px solid #444;
+}
+
+.branch-bar,
+.salon-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.salon-bar {
+    margin-bottom: 14px;
+}
+
+.branch-bar .salon-tabs,
+.salon-bar .salon-tabs {
+    margin: 0;
+}
+
+.workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px 24px;
+}
+
+.workspace-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--accent);
+    font-size: 18px;
+    letter-spacing: 0.4px;
+}
+
+.editor-switch {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.editor-switch button {
+    background: transparent;
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.editor-switch button.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+}
+
+.workspace-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.table-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.table-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.table-tool {
+    height: 34px;
+    min-width: 64px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: #111;
+    color: var(--accent);
+    border: 1px solid #3a3420;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.table-tool:hover {
+    border-color: var(--accent);
+    background: #1c180e;
+}
+
+.table-tool.danger {
+    color: #ff8a93;
+    border-color: #5a3034;
+    background: #1a1012;
+}
+
+.table-tool.danger:hover {
+    color: #fff;
+    border-color: #e63946;
+}
+
+.table-add {
+    display: flex;
+    margin-bottom: 14px;
+}
+
+.table-add input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    box-sizing: border-box;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 15px;
+}
+
+.table-add input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.table-add .branches-submit {
+    height: 44px;
+    box-sizing: border-box;
+    border-radius: 0 8px 8px 0;
+}
+
+.table-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.table-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 12px 10px 16px;
+}
+
+.table-list-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.branches-empty {
+    margin: 0 0 12px;
+    color: #777;
+}
+
+.salon-tabs {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    max-width: none;
+    margin: 0 0 14px;
+}
+
+.salon-tabs button {
+    background: #1a1a1a;
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.salon-tabs button.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+}
+
+.branches-plan {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.branches-plan .floor-fit-editor {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+}
+
+.branches-plan .floor-fit-editor .floor-stage {
+    width: min(100cqw, calc(100cqh * 1200 / 800));
+    height: min(100cqh, calc(100cqw * 800 / 1200));
+}
+
+.branches-decor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.plan-save {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.plan-dirty {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.plan-save .branches-submit {
+    margin-left: 0;
+}
+
+.branches-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.branches-modal-card {
+    width: min(420px, calc(100% - 32px));
+    background: #111;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.branches-modal-card h3,
+.branches-modal-card p {
+    margin: 0;
+    color: var(--accent);
+    letter-spacing: 0.4px;
+}
+
+.branches-notice {
+    width: min(420px, calc(100% - 48px));
+    background: #0c0c0c;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+    padding: 28px;
+    gap: 22px;
+}
+
+.branches-modal:has(.branches-notice) {
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.branches-notice h3 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.branches-modal-card input {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.branches-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}

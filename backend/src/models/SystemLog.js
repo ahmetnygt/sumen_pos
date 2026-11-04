@@ -5,7 +5,8 @@ const SystemLog = sequelize.define('SystemLog', {
     table_name: { type: DataTypes.STRING },
     personnel: { type: DataTypes.STRING, defaultValue: 'Sistem' }, // BÜYÜ BURADA: Personel Sütunu
     message: { type: DataTypes.STRING },
-    status: { type: DataTypes.STRING }
+    status: { type: DataTypes.STRING },
+    branch_id: { type: DataTypes.INTEGER, allowNull: true }
 }, {
     tableName: 'system_logs',
     timestamps: true,

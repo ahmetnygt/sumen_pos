@@ -3,7 +3,7 @@
 :root {
     --bg-color: #0a0a0a;
     --surface-color: #121212;
-    --primary-color: #d4af37;
+    --primary-color: var(--accent);
     --text-color: #f0f0f0;
     --text-muted: #888888;
     --danger-color: #e63946;
@@ -106,7 +106,7 @@ body {
 }
 
 .pending-item-row {
-    background: rgba(212, 175, 55, 0.05);
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
     padding: 8px;
     border-radius: 6px;
     border: 1px solid #222;
@@ -151,7 +151,7 @@ body {
     padding: 14px;
     margin-top: 10px;
     background: var(--primary-color);
-    color: #000;
+    color: var(--accent-ink);
     font-weight: 800;
     font-size: 15px;
     border: none;
@@ -165,15 +165,15 @@ body {
 
 @keyframes pulse-gold {
     0% {
-        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
     }
 
     70% {
-        box-shadow: 0 0 0 10px rgba(212, 175, 55, 0);
+        box-shadow: 0 0 0 10px transparent;
     }
 
     100% {
-        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+        box-shadow: 0 0 0 0 transparent;
     }
 }
 
@@ -213,6 +213,14 @@ body {
     font-weight: 700;
     white-space: nowrap;
     transition: 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cat-btn .menu-glyph {
+    width: 16px;
+    height: 16px;
 }
 
 .cat-btn.active {
@@ -233,14 +241,41 @@ body {
 .prod-btn {
     background: #1a1a1a;
     border: 1px solid #333;
-    padding: 15px 5px;
-    height: 85px;
+    padding: 0 6px 8px;
+    min-height: 148px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    gap: 4px;
+    overflow: hidden;
     transition: 0.1s;
+}
+
+.prod-btn .prod-visual {
+    width: calc(100% + 12px);
+    margin: 0 -6px 4px;
+    aspect-ratio: 16 / 10;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #111;
+    border-radius: 7px 7px 0 0;
+}
+
+.prod-btn .prod-visual img.prod-mark {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.prod-btn .prod-visual .menu-glyph {
+    width: 40px;
+    height: 40px;
+    color: var(--accent);
 }
 
 .prod-btn:active {
@@ -282,7 +317,7 @@ body {
 
 .modal-content {
     background: #111;
-    border: 2px solid #d4af37;
+    border: 2px solid var(--accent);
     border-radius: 12px;
     width: 90%;
     max-width: 450px;
@@ -334,9 +369,9 @@ body {
 }
 
 .option-btn.selected {
-    background: rgba(212, 175, 55, 0.1);
-    border-color: #d4af37;
-    color: #d4af37;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .option-price {
@@ -367,8 +402,8 @@ body {
 
 .confirm-btn {
     flex: 2;
-    background: #d4af37;
-    color: #000;
+    background: var(--accent);
+    color: var(--accent-ink);
     border: none;
     padding: 14px;
     border-radius: 8px;
@@ -586,7 +621,7 @@ body {
     border-radius: 10px;
     min-width: 140px;
     text-align: right;
-    border: 1px solid #d4af37;
+    border: 1px solid var(--accent);
 }
 
 .mc-numpad-grid {
@@ -638,7 +673,8 @@ body {
 }
 
 .mc-cash-btn {
-    background: #d4af37;
+    background: var(--accent);
+    color: var(--accent-ink);
 }
 
 /* SİPARİŞ İPTAL BUTONU (MOBİL İÇİN) */

@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
-const { verifyToken, authorizeRoles } = require('../middlewares/authMiddleware');
+const { verifyToken, authorizeRoles, requireCompany, requireBranch } = require('../middlewares/authMiddleware');
 
-// Tüm stok ve reçete işlemlerini sadece Admin yapabilir
-router.use(verifyToken, authorizeRoles('Admin'));
+router.use(verifyToken, authorizeRoles('Admin'), requireCompany, requireBranch);
 
 // Hammadde (Stok) Rotaları
 router.get('/ingredients', inventoryController.getAll);
